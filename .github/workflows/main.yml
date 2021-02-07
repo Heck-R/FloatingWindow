@@ -1,0 +1,115 @@
+
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  script_name: FloatingWindow
+  minify_directory: minified
+  changelog_name: changelog.md
+
+jobs:
+  minify-script:
+    name: 'Minify Script'
+    
+    runs-on: ubuntu-18.04
+
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Auto Minify
+        uses: nizarmah/auto-minify@v2.0
+      
+      - name: Upload Release Sources as an Artifact
+        uses: actions/upload-artifact@v2.2.1
+        with:
+          name: 'ReleaseSources'
+          path: |
+            ${{ env.script_name }}.js
+            ${{ env.script_name }}.min.js
+          retention-days: 365
+    
+  create-release:
+    name: 'Create Release'
+    
+    runs-on: windows-2019
+    needs: [minify-script]
+
+    steps:
+      - uses: actions/checkout@v2.3.4
+        with:
+          fetch-depth: 0
+      
+      - name: Download Release Sources Artifact
+        uses: actions/download-artifact@v2.0.7
+        with:
+          name: 'ReleaseSources'
+      
+      - name: Create Changelog From Commit Messages
+        run: |
+          $targetTagVersion = ("${{ github.ref }}" -split "/")[-1]
+          $lastCommitId = ""
+          $tags = git tag --sort version:refname
+          foreach($tag in $tags) {
+            if (-not ($tag -match "^v\d+\.\d+\.\d+$")) {
+              continue
+              }
+            if ($tag -eq "$targetTagVersion") {
+              break
+            } else {
+              $lastCommitId = $tag
+            }
+          }
+          $startCommitId = ""
+          if ("" -ne $lastCommitId) {
+            $startCommitId = $lastCommitId
+          } else {
+            $startCommitId = git rev-list --max-parents=0 "$targetTagVersion"
+          }
+          
+          Write-Host "Collecting commit messages from: '$startCommitId'"
+          $messages = git log --pretty="%s" "$startCommitId...$targetTagVersion"
+          Write-Host $messages
+          
+          Write-Host "Creating markdown from changes..."
+          "Changes:`n" > ${{ env.changelog_name }}
+          git log --pretty="%s" "$startCommitId...$targetTagVersion" | Sort-Object -Unique {$_} | ForEach-Object {"- $_"} >> ${{ env.changelog_name }}
+          Write-Host "Created ${{ env.changelog_name }}"
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body_path: ${{ env.changelog_name }}
+          draft: true
+          prerelease: false
+      
+      - name: Upload script as Release Asset
+        id: upload-release-asset-script
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} 
+          asset_path: '${{ env.script_name }}.js'
+          asset_name: '${{ env.script_name }}.js'
+          asset_content_type: application/zip
+      
+      - name: Upload minifed script as Release Asset
+        id: upload-release-asset-script-minified
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} 
+          asset_path: '${{ env.script_name }}.min.js'
+          asset_name: '${{ env.script_name }}.min.js'
+          asset_content_type: application/zip
