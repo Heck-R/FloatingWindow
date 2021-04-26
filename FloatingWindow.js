@@ -12,7 +12,7 @@
  * 
  * Content can be added to the FloatingWindow.content element
  */
-class FloatingWindow extends HTMLElement {
+ class FloatingWindow extends HTMLElement {
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Overrides
@@ -20,9 +20,9 @@ class FloatingWindow extends HTMLElement {
 	connectedCallback() {
 		// Observed variables
 		if (this.dataset.sizeType == undefined){
-            this.dataset.sizeType = 'Auto';
-        }
-
+			this.dataset.sizeType = 'Auto';
+		}
+		
 		// Minimal style
 		this.style.cssText = `
 			position: fixed;
@@ -39,7 +39,7 @@ class FloatingWindow extends HTMLElement {
 	/**
 	 * Convert a calc Object to a css calc() string
 	 * 
-	 * @param {Object} calcObj An Object representing a css calc(). E.g.: 
+	 * @param {Object} calcObj An Object representing a css calc(). E.g.:
 	 * ```{
 	 *     px: 1,
 	 *     vw: 2
@@ -64,7 +64,7 @@ class FloatingWindow extends HTMLElement {
 	/**
 	 * Sums up same units of a css calc() string
 	 * 
-	 * @param {String} originalCalc 
+	 * @param {String} originalCalc
 	 * @returns {Object} Calc Object with sum of the units
 	 */
 	static simplifyStyleCalcSize(originalCalc) {
@@ -98,7 +98,7 @@ class FloatingWindow extends HTMLElement {
 	/**
 	 * Converts a css calc() string to pixel
 	 * 
-	 * @param {String} originalCalc 
+	 * @param {String} originalCalc
 	 * @returns {Number} Size defined by the calc() string converted into pixels
 	 */
 	static convertStyleCalcSizeToPx(originalCalc) {
@@ -115,7 +115,7 @@ class FloatingWindow extends HTMLElement {
 	/**
 	 * Converts a css calc() string to viewport
 	 * 
-	 * @param {String} originalCalc 
+	 * @param {String} originalCalc
 	 * @param {Number} vwPercentage How many percent of the `originalCalc` needs to be converted into viewport width
 	 * @param {Number} vhPercentage How many percent of the `originalCalc` needs to be converted into viewport height
 	 * @returns {Number} Size defined by  the calc() string converted into viewport
@@ -152,8 +152,8 @@ class FloatingWindow extends HTMLElement {
 	/**
 	 * Multiply a css calc() in a way it stays handleable later on
 	 * 
-	 * @param {String} originalCalc 
-	 * @param {Number} multiplier 
+	 * @param {String} originalCalc
+	 * @param {Number} multiplier
 	 * @returns {Object} Calc Object with the multiplied unit values
 	 */
 	static multiplyStyleCalcSize(originalCalc, multiplier) {
@@ -174,8 +174,8 @@ class FloatingWindow extends HTMLElement {
 	 * Compares the represented sizes of two css calc() strings
 	 * 
 	 * @param {"min"|"max"} minMax Defines whether or not to check for the first parameter being greater or less then the second
-	 * @param {String} calcSize1 
-	 * @param {String} calcSize2 
+	 * @param {String} calcSize1
+	 * @param {String} calcSize2
 	 * @returns {Boolean} Whether or not the first calc() is strictly greater / less (based on the `minMax` param) than the second calc()
 	 */
 	static calcMinMax(minMax, calcSize1, calcSize2) {
@@ -411,7 +411,7 @@ class FloatingWindow extends HTMLElement {
 	 * - left: Corresponds to the x coordinate of the window. Default: 0*
 	 * - width: Corresponds to the width of the window. Default: 0*
 	 * - height: Corresponds to the height of the window. Default: 0*
-	 * @param {MouseEvent} event 
+	 * @param {MouseEvent} event
 	 */
 	grabWindow(changeModifiers, event) {
 		let modifiers = ['top', 'left', 'width', 'height'];
