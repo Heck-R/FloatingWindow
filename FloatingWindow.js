@@ -535,13 +535,17 @@ class FloatingWindow extends HTMLElement {
 	 */
 	updateFloatingWindowStyle() {
 
-		// Get windowStyle
+		// Get styles
 		let windowStyle = this.shadowRoot.getElementById('windowStyle');
-
+		let contentStyle = this.shadowRoot.getElementById('contentStyle');
 
 		windowStyle.textContent = `
 			* {
 				all: initial;
+			}
+
+			[contenteditable] {
+				outline: 0px solid transparent;
 			}
 
 			style {
@@ -550,10 +554,6 @@ class FloatingWindow extends HTMLElement {
 
 			.hidden {
 				display: none!important;
-			}
-
-			[contenteditable] {
-				outline: 0px solid transparent;
 			}
 
 			#windowSizerContainer {
@@ -774,23 +774,101 @@ class FloatingWindow extends HTMLElement {
 
 				overflow: auto;
 			}
+		`;
+		
+		contentStyle.textContent = `
+			/* Generic */
+			#content * {
+				color: #ccc;
+			}
 
+			/* Separator */
+			hr {
+				display: block;
+				border: 1px inset;
+			}
 
+			/* Button */
+			button {
+				background-color: #444;
+				color: #eee !important;
 
+				padding: 0.2em 0.4em 0.2em 0.4em;
+				border-radius: 0.2em;
+			}
+			
+			button:hover {
+				background-color: #555;
+			}
+
+			button:active {
+				background-color: #333;
+			}
+
+			/* Table */
+			table	 { display: table }
+			thead	 { display: table-header-group }
+			tbody	 { display: table-row-group }
+			tfoot	 { display: table-footer-group }
+			colgroup { display: table-column-group }
+			col		 { display: table-column }
+			caption  { display: table-caption }
+			tr		 { display: table-row }
+			td, th	 { display: table-cell }
+
+			table {
+				border-collapse: collapse;
+			}
+			
+			td, th {
+				padding: 0.2em 0.4em 0.2em 0.4em;
+				border: solid 1px;
+			}
+
+			/* Scroll bar */
 			::-webkit-scrollbar {
 				width: 15px;
 			}
 
 			::-webkit-scrollbar-track {
-				background: #555;
+				background: #222;
 			}
 
 			::-webkit-scrollbar-thumb {
-				background: #333;
+				background: #444;
 			}
 
 			::-webkit-scrollbar-thumb:hover {
-				background: #222;
+				background: #555;
+			}
+
+			::-webkit-scrollbar-thumb:active {
+				background: #666;
+			}
+
+			/* Styling */
+			b, strong { font-weight: bolder }
+			i, cite, em, var, address { font-style: italic }
+			s, strike, del { text-decoration: line-through }
+			center { text-align: center }
+			
+			/* Linking */
+			:link, :visited { text-decoration: underline }
+			:focus { outline: thin dotted invert }
+
+			/* Magic */
+			/* Begin bidirectionality settings (do not change) */
+			BDO[DIR="ltr"]  { direction: ltr; unicode-bidi: bidi-override }
+			BDO[DIR="rtl"]  { direction: rtl; unicode-bidi: bidi-override }
+
+			*[DIR="ltr"]    { direction: ltr; unicode-bidi: embed }
+			*[DIR="rtl"]    { direction: rtl; unicode-bidi: embed }
+
+			@media print {
+			h1            { page-break-before: always }
+			h1, h2, h3,
+			h4, h5, h6    { page-break-after: avoid }
+			ul, ol, dl    { page-break-before: avoid }
 			}
 		`;
 	}
@@ -885,6 +963,10 @@ class FloatingWindow extends HTMLElement {
 		floatingWindow.id = 'floatingWindow';
 
 
+		// Styles
+		let contentStyle = document.createElement('style');
+		contentStyle.id = 'contentStyle';
+		contentStyle.setAttribute('scoped', '');
 
 		let windowStyle = document.createElement('style');
 		windowStyle.id = 'windowStyle';
@@ -1000,6 +1082,7 @@ class FloatingWindow extends HTMLElement {
 
 		// Assemble
 		shadowRoot.appendChild(windowStyle);
+		shadowRoot.appendChild(contentStyle);
 		shadowRoot.appendChild(floatingWindow);
 			floatingWindow.appendChild(navigationBar);
 				navigationBar.appendChild(positionPanel);
