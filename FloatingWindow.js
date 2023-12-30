@@ -32,6 +32,243 @@ class FloatingWindow extends HTMLElement {
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Initalization
+
+	// prettier-ignore
+	constructor() {
+		super();
+
+		// Default values
+		this.sizerThickness = "5px";
+		this.windowBorderRadius = "calc(5px)";
+		this.navigationBarHeight = "calc(10px + 1.5vh)";
+		this.minWindowWidth = FloatingWindow.calcObjToString(FloatingWindow.multiplyStyleCalcSize(this.navigationBarHeight, 9));
+		this.minFixedButtonSize = FloatingWindow.calcObjToString(FloatingWindow.multiplyStyleCalcSize(this.minWindowWidth, 3 / 6));
+
+		// Create dataset variable observers (initiated in connectedCallback())
+		let observer = new MutationObserver(mutations => {
+			mutations.forEach(mutation => {
+				if (mutation.type == "attributes") {
+					// prettier-ignore
+					let datasetVariableName = mutation.attributeName
+						.replace(/^data-/, "")
+						.replace(/([-][a-z])/g, group => group.toUpperCase()
+						.replace("-", ""));
+					this[`onFloatingDataChange_${datasetVariableName}`]();
+				}
+			});
+		});
+
+		observer.observe(this, {
+			attributes: true,
+			attributeFilter: ["data-size-type"],
+		});
+
+		// Shadow root for better separation from the page
+		let shadowRoot = this.attachShadow({ mode: "open" });
+
+		// Window sizer panel
+		let windowSizerContainer = document.createElement("div");
+		windowSizerContainer.id = "windowSizerContainer";
+
+		// Sizer - Accidental Selection Blocker
+		let sizerSelectionBlockerOverlay = document.createElement("div");
+		sizerSelectionBlockerOverlay.id = "sizerSelectionBlockerOverlay";
+		sizerSelectionBlockerOverlay.classList.add("hidden");
+
+		// Sizer - Top
+		let sizerTop = document.createElement("div");
+		sizerTop.classList.add("sizer", "sizerTop");
+		sizerTop.addEventListener("mousedown", this.grabWindow.bind(this, { top: "1*", height: "-1*" }));
+
+		// Sizer - Bottom
+		let sizerBottom = document.createElement("div");
+		sizerBottom.classList.add("sizer", "sizerBottom");
+		sizerBottom.addEventListener("mousedown", this.grabWindow.bind(this, { height: "1*" }));
+
+		// Sizer - Left
+		let sizerLeft = document.createElement("div");
+		sizerLeft.classList.add("sizer", "sizerLeft");
+		sizerLeft.addEventListener("mousedown", this.grabWindow.bind(this, { left: "1*", width: "-1*" }));
+
+		// Sizer - Right
+		let sizerRight = document.createElement("div");
+		sizerRight.classList.add("sizer", "sizerRight");
+		sizerRight.addEventListener("mousedown", this.grabWindow.bind(this, { width: "1*" }));
+
+		// Sizer - TopLeft
+		let sizerTopLeft = document.createElement("div");
+		sizerTopLeft.classList.add("sizer", "sizerCorner", "sizerTop", "sizerLeft");
+		sizerTopLeft.addEventListener("mousedown", this.grabWindow.bind(this, { top: "1*", left: "1*", width: "-1*", height: "-1*" }));
+
+		// Sizer - TopRight
+		let sizerTopRight = document.createElement("div");
+		sizerTopRight.classList.add("sizer", "sizerCorner", "sizerTop", "sizerRight");
+		sizerTopRight.addEventListener("mousedown", this.grabWindow.bind(this, { top: "1*", width: "1*", height: "-1*" }));
+
+		// Sizer - BottomLeft
+		let sizerBottomLeft = document.createElement("div");
+		sizerBottomLeft.classList.add("sizer", "sizerCorner", "sizerBottom", "sizerLeft");
+		sizerBottomLeft.addEventListener("mousedown", this.grabWindow.bind(this, { left: "1*", width: "-1*", height: "1*" }));
+
+		// Sizer - BottomRight
+		let sizerBottomRight = document.createElement("div");
+		sizerBottomRight.classList.add("sizer", "sizerCorner", "sizerBottom", "sizerRight");
+		sizerBottomRight.addEventListener("mousedown", this.grabWindow.bind(this, { width: "1*", height: "1*" }));
+
+		// Floating window element
+		let floatingWindow = document.createElement("div");
+		floatingWindow.id = "floatingWindow";
+
+		// Styles
+		let contentStyle = document.createElement("style");
+		contentStyle.id = "contentStyle";
+		contentStyle.setAttribute("scoped", "");
+
+		let windowStyle = document.createElement("style");
+		windowStyle.id = "windowStyle";
+		windowStyle.setAttribute("scoped", "");
+
+		// Navbar
+		let navigationBar = document.createElement("div");
+		navigationBar.id = "navigationBar";
+		navigationBar.addEventListener("mousedown", this.grabWindow.bind(this, { top: "1*", left: "1*" }));
+		navigationBar.addEventListener("dblclick", this.applyMaximizedStyle.bind(this));
+
+		this.boundMoveWindow = this.moveWindow.bind(this);
+		this.boundReleaseWindow = this.releaseWindow.bind(this);
+
+		// Size panel
+		let positionPanel = document.createElement("div");
+		positionPanel.id = "positionPanel";
+
+		let propagationStopper = event => {event.stopPropagation();};
+
+		let createPositionButton = (positionButtonId = "", text = "", listenerFunction = undefined, stopPropagation = true) => {
+			let positionButton = document.createElement("div");
+			positionButton.id = positionButtonId;
+			positionButton.classList.add("positionButton");
+			positionButton.innerText = text;
+
+			if (listenerFunction !== undefined) {
+				positionButton.addEventListener("click", listenerFunction);
+			}
+
+			if (stopPropagation) {
+				positionButton.addEventListener("mousedown", propagationStopper);
+				positionButton.addEventListener("click", event => {
+					this.setSwitchablesOff(event.target.parentElement);
+				});
+			}
+
+			return positionButton;
+		};
+
+		let createPositionSlot = (positionId = "", text = "", listenerFunction = undefined, stopPropagation = true) => {
+			let positionSlot = document.createElement("div");
+			positionSlot.id = `${positionId}Slot`;
+			positionSlot.classList.add("positionSlot");
+
+			let positionButton = createPositionButton(`${positionId}Button`, text, listenerFunction, stopPropagation);
+			positionSlot.appendChild(positionButton);
+
+			return positionSlot;
+		};
+
+		// SizeType buttons
+		let sizeTypeButtonPanel = document.createElement("div");
+		sizeTypeButtonPanel.id = "sizeTypeButtonPanel";
+		sizeTypeButtonPanel.classList.add("switchable");
+		sizeTypeButtonPanel.classList.add("hidden");
+
+		let sizeTypes = ["Viewport", "Fixed", "Auto"];
+		for (let sizeType of sizeTypes) {
+			let sizeTypeButton = createPositionButton("sizeType" + sizeType, sizeType, () => {this.dataset.sizeType = sizeType;});
+			sizeTypeButton.classList.add("sizeTypeButton");
+
+			sizeTypeButtonPanel.appendChild(sizeTypeButton);
+		}
+
+		// Fixed position buttons
+		let fixedButtonGrid = document.createElement("div");
+		fixedButtonGrid.id = "fixedButtonGrid";
+		fixedButtonGrid.classList.add("switchable");
+		fixedButtonGrid.classList.add("hidden");
+
+		let fixedButtonTexts = [
+			["┌", "┬", "┐"],
+			["├", "┼", "┤"],
+			["└", "┴", "┘"],
+		];
+
+		for (let rowNum = 0; rowNum < 3; rowNum++) {
+			for (let colNum = 0; colNum < 3; colNum++) {
+				let fixedButton = createPositionButton("fixed" + rowNum + colNum, fixedButtonTexts[rowNum][colNum], this.applyFixedStyle.bind(this, { x: colNum * 50, y: rowNum * 50 }, { x: colNum * 50, y: rowNum * 50 }));
+				fixedButton.classList.add("fixedButton");
+
+				fixedButtonGrid.appendChild(fixedButton);
+			}
+		}
+
+		// Movable slot
+		let movableSlot = createPositionSlot("movable", "", undefined, false);
+
+		// SizeType slot
+		let sizeTypeSlot = createPositionSlot("sizeType", "%", FloatingWindow.switchElementVisibility.bind(this, sizeTypeButtonPanel));
+
+		// Minimize slot
+		let minimizeSlot = createPositionSlot("minimize", "_", this.applyMinimizedStyle.bind(this));
+
+		// Fixed slot
+		let fixedSlot = createPositionSlot("fixed", "+", FloatingWindow.switchElementVisibility.bind(this, fixedButtonGrid));
+
+		// Maximize slot
+		let maximizeSlot = createPositionSlot("maximize", "⛶", this.applyMaximizedStyle.bind(this));
+
+		// Close slot
+		let closeSlot = createPositionSlot("close", "X", this.closeWindow.bind(this));
+
+		// Content
+		let content = document.createElement("div");
+		content.id = "content";
+
+		// Assemble
+		shadowRoot.appendChild(windowStyle);
+		shadowRoot.appendChild(contentStyle);
+		shadowRoot.appendChild(floatingWindow);
+			floatingWindow.appendChild(navigationBar);
+				navigationBar.appendChild(positionPanel);
+					positionPanel.appendChild(movableSlot);
+					positionPanel.appendChild(sizeTypeSlot);
+						sizeTypeSlot.appendChild(sizeTypeButtonPanel);
+					positionPanel.appendChild(minimizeSlot);
+					positionPanel.appendChild(fixedSlot);
+						fixedSlot.appendChild(fixedButtonGrid);
+					positionPanel.appendChild(maximizeSlot);
+					positionPanel.appendChild(closeSlot);
+			floatingWindow.appendChild(content);
+		shadowRoot.appendChild(windowSizerContainer);
+			windowSizerContainer.appendChild(sizerSelectionBlockerOverlay);
+			windowSizerContainer.appendChild(sizerTop);
+			windowSizerContainer.appendChild(sizerBottom);
+			windowSizerContainer.appendChild(sizerLeft);
+			windowSizerContainer.appendChild(sizerRight);
+			windowSizerContainer.appendChild(sizerTopLeft);
+			windowSizerContainer.appendChild(sizerTopRight);
+			windowSizerContainer.appendChild(sizerBottomLeft);
+			windowSizerContainer.appendChild(sizerBottomRight);
+
+		// Window listeners
+		this.addEventListener("mousedown", this.setSwitchablesOff.bind(this));
+
+		// Window resize handling
+		window.addEventListener("resize", () => {this.fixLessThatMinSize();});
+
+		// Accessible parts
+		this.content = content;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Static methods
 
 	/**
@@ -1785,242 +2022,6 @@ dialog::backdrop {
 		contentStyle.textContent = chromeDefault + customExtension;
 	}
 
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	// Initalization
-
-	// prettier-ignore
-	constructor() {
-		super();
-
-		// Default values
-		this.sizerThickness = "5px";
-		this.windowBorderRadius = "calc(5px)";
-		this.navigationBarHeight = "calc(10px + 1.5vh)";
-		this.minWindowWidth = FloatingWindow.calcObjToString(FloatingWindow.multiplyStyleCalcSize(this.navigationBarHeight, 9));
-		this.minFixedButtonSize = FloatingWindow.calcObjToString(FloatingWindow.multiplyStyleCalcSize(this.minWindowWidth, 3 / 6));
-
-		// Create dataset variable observers (initiated in connectedCallback())
-		let observer = new MutationObserver(mutations => {
-			mutations.forEach(mutation => {
-				if (mutation.type == "attributes") {
-					// prettier-ignore
-					let datasetVariableName = mutation.attributeName
-						.replace(/^data-/, "")
-						.replace(/([-][a-z])/g, group => group.toUpperCase()
-						.replace("-", ""));
-					this[`onFloatingDataChange_${datasetVariableName}`]();
-				}
-			});
-		});
-
-		observer.observe(this, {
-			attributes: true,
-			attributeFilter: ["data-size-type"],
-		});
-
-		// Shadow root for better separation from the page
-		let shadowRoot = this.attachShadow({ mode: "open" });
-
-		// Window sizer panel
-		let windowSizerContainer = document.createElement("div");
-		windowSizerContainer.id = "windowSizerContainer";
-
-		// Sizer - Accidental Selection Blocker
-		let sizerSelectionBlockerOverlay = document.createElement("div");
-		sizerSelectionBlockerOverlay.id = "sizerSelectionBlockerOverlay";
-		sizerSelectionBlockerOverlay.classList.add("hidden");
-
-		// Sizer - Top
-		let sizerTop = document.createElement("div");
-		sizerTop.classList.add("sizer", "sizerTop");
-		sizerTop.addEventListener("mousedown", this.grabWindow.bind(this, { top: "1*", height: "-1*" }));
-
-		// Sizer - Bottom
-		let sizerBottom = document.createElement("div");
-		sizerBottom.classList.add("sizer", "sizerBottom");
-		sizerBottom.addEventListener("mousedown", this.grabWindow.bind(this, { height: "1*" }));
-
-		// Sizer - Left
-		let sizerLeft = document.createElement("div");
-		sizerLeft.classList.add("sizer", "sizerLeft");
-		sizerLeft.addEventListener("mousedown", this.grabWindow.bind(this, { left: "1*", width: "-1*" }));
-
-		// Sizer - Right
-		let sizerRight = document.createElement("div");
-		sizerRight.classList.add("sizer", "sizerRight");
-		sizerRight.addEventListener("mousedown", this.grabWindow.bind(this, { width: "1*" }));
-
-		// Sizer - TopLeft
-		let sizerTopLeft = document.createElement("div");
-		sizerTopLeft.classList.add("sizer", "sizerCorner", "sizerTop", "sizerLeft");
-		sizerTopLeft.addEventListener("mousedown", this.grabWindow.bind(this, { top: "1*", left: "1*", width: "-1*", height: "-1*" }));
-
-		// Sizer - TopRight
-		let sizerTopRight = document.createElement("div");
-		sizerTopRight.classList.add("sizer", "sizerCorner", "sizerTop", "sizerRight");
-		sizerTopRight.addEventListener("mousedown", this.grabWindow.bind(this, { top: "1*", width: "1*", height: "-1*" }));
-
-		// Sizer - BottomLeft
-		let sizerBottomLeft = document.createElement("div");
-		sizerBottomLeft.classList.add("sizer", "sizerCorner", "sizerBottom", "sizerLeft");
-		sizerBottomLeft.addEventListener("mousedown", this.grabWindow.bind(this, { left: "1*", width: "-1*", height: "1*" }));
-
-		// Sizer - BottomRight
-		let sizerBottomRight = document.createElement("div");
-		sizerBottomRight.classList.add("sizer", "sizerCorner", "sizerBottom", "sizerRight");
-		sizerBottomRight.addEventListener("mousedown", this.grabWindow.bind(this, { width: "1*", height: "1*" }));
-
-		// Floating window element
-		let floatingWindow = document.createElement("div");
-		floatingWindow.id = "floatingWindow";
-
-		// Styles
-		let contentStyle = document.createElement("style");
-		contentStyle.id = "contentStyle";
-		contentStyle.setAttribute("scoped", "");
-
-		let windowStyle = document.createElement("style");
-		windowStyle.id = "windowStyle";
-		windowStyle.setAttribute("scoped", "");
-
-		// Navbar
-		let navigationBar = document.createElement("div");
-		navigationBar.id = "navigationBar";
-		navigationBar.addEventListener("mousedown", this.grabWindow.bind(this, { top: "1*", left: "1*" }));
-		navigationBar.addEventListener("dblclick", this.applyMaximizedStyle.bind(this));
-
-		this.boundMoveWindow = this.moveWindow.bind(this);
-		this.boundReleaseWindow = this.releaseWindow.bind(this);
-
-		// Size panel
-		let positionPanel = document.createElement("div");
-		positionPanel.id = "positionPanel";
-
-		let propagationStopper = event => {event.stopPropagation();};
-
-		let createPositionButton = (positionButtonId = "", text = "", listenerFunction = undefined, stopPropagation = true) => {
-			let positionButton = document.createElement("div");
-			positionButton.id = positionButtonId;
-			positionButton.classList.add("positionButton");
-			positionButton.innerText = text;
-
-			if (listenerFunction !== undefined) {
-				positionButton.addEventListener("click", listenerFunction);
-			}
-
-			if (stopPropagation) {
-				positionButton.addEventListener("mousedown", propagationStopper);
-				positionButton.addEventListener("click", event => {
-					this.setSwitchablesOff(event.target.parentElement);
-				});
-			}
-
-			return positionButton;
-		};
-
-		let createPositionSlot = (positionId = "", text = "", listenerFunction = undefined, stopPropagation = true) => {
-			let positionSlot = document.createElement("div");
-			positionSlot.id = `${positionId}Slot`;
-			positionSlot.classList.add("positionSlot");
-
-			let positionButton = createPositionButton(`${positionId}Button`, text, listenerFunction, stopPropagation);
-			positionSlot.appendChild(positionButton);
-
-			return positionSlot;
-		};
-
-		// SizeType buttons
-		let sizeTypeButtonPanel = document.createElement("div");
-		sizeTypeButtonPanel.id = "sizeTypeButtonPanel";
-		sizeTypeButtonPanel.classList.add("switchable");
-		sizeTypeButtonPanel.classList.add("hidden");
-
-		let sizeTypes = ["Viewport", "Fixed", "Auto"];
-		for (let sizeType of sizeTypes) {
-			let sizeTypeButton = createPositionButton("sizeType" + sizeType, sizeType, () => {this.dataset.sizeType = sizeType;});
-			sizeTypeButton.classList.add("sizeTypeButton");
-
-			sizeTypeButtonPanel.appendChild(sizeTypeButton);
-		}
-
-		// Fixed position buttons
-		let fixedButtonGrid = document.createElement("div");
-		fixedButtonGrid.id = "fixedButtonGrid";
-		fixedButtonGrid.classList.add("switchable");
-		fixedButtonGrid.classList.add("hidden");
-
-		let fixedButtonTexts = [
-			["┌", "┬", "┐"],
-			["├", "┼", "┤"],
-			["└", "┴", "┘"],
-		];
-
-		for (let rowNum = 0; rowNum < 3; rowNum++) {
-			for (let colNum = 0; colNum < 3; colNum++) {
-				let fixedButton = createPositionButton("fixed" + rowNum + colNum, fixedButtonTexts[rowNum][colNum], this.applyFixedStyle.bind(this, { x: colNum * 50, y: rowNum * 50 }, { x: colNum * 50, y: rowNum * 50 }));
-				fixedButton.classList.add("fixedButton");
-
-				fixedButtonGrid.appendChild(fixedButton);
-			}
-		}
-
-		// Movable slot
-		let movableSlot = createPositionSlot("movable", "", undefined, false);
-
-		// SizeType slot
-		let sizeTypeSlot = createPositionSlot("sizeType", "%", FloatingWindow.switchElementVisibility.bind(this, sizeTypeButtonPanel));
-
-		// Minimize slot
-		let minimizeSlot = createPositionSlot("minimize", "_", this.applyMinimizedStyle.bind(this));
-
-		// Fixed slot
-		let fixedSlot = createPositionSlot("fixed", "+", FloatingWindow.switchElementVisibility.bind(this, fixedButtonGrid));
-
-		// Maximize slot
-		let maximizeSlot = createPositionSlot("maximize", "⛶", this.applyMaximizedStyle.bind(this));
-
-		// Close slot
-		let closeSlot = createPositionSlot("close", "X", this.closeWindow.bind(this));
-
-		// Content
-		let content = document.createElement("div");
-		content.id = "content";
-
-		// Assemble
-		shadowRoot.appendChild(windowStyle);
-		shadowRoot.appendChild(contentStyle);
-		shadowRoot.appendChild(floatingWindow);
-			floatingWindow.appendChild(navigationBar);
-				navigationBar.appendChild(positionPanel);
-					positionPanel.appendChild(movableSlot);
-					positionPanel.appendChild(sizeTypeSlot);
-						sizeTypeSlot.appendChild(sizeTypeButtonPanel);
-					positionPanel.appendChild(minimizeSlot);
-					positionPanel.appendChild(fixedSlot);
-						fixedSlot.appendChild(fixedButtonGrid);
-					positionPanel.appendChild(maximizeSlot);
-					positionPanel.appendChild(closeSlot);
-			floatingWindow.appendChild(content);
-		shadowRoot.appendChild(windowSizerContainer);
-			windowSizerContainer.appendChild(sizerSelectionBlockerOverlay);
-			windowSizerContainer.appendChild(sizerTop);
-			windowSizerContainer.appendChild(sizerBottom);
-			windowSizerContainer.appendChild(sizerLeft);
-			windowSizerContainer.appendChild(sizerRight);
-			windowSizerContainer.appendChild(sizerTopLeft);
-			windowSizerContainer.appendChild(sizerTopRight);
-			windowSizerContainer.appendChild(sizerBottomLeft);
-			windowSizerContainer.appendChild(sizerBottomRight);
-
-		// Window listeners
-		this.addEventListener("mousedown", this.setSwitchablesOff.bind(this));
-
-		// Window resize handling
-		window.addEventListener("resize", () => {this.fixLessThatMinSize();});
-
-		// Accessible parts
-		this.content = content;
-	}
 }
 
 // Register FloatingWindow
