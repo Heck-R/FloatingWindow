@@ -1039,6 +1039,10 @@ class FloatingWindow extends HTMLElement {
 
 			button:active {
 				background-color: #333;
+				
+                border: none;
+				border-radius: 0.2em;
+                box-shadow: inset 0 0 0 2px #777;
 			}
 
 			/* Linking */
