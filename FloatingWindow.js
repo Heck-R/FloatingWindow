@@ -32,7 +32,7 @@ class FloatingWindow extends HTMLElement {
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
-	// Initalization
+	// initialization
 
 	// prettier-ignore
 	constructor() {
@@ -623,7 +623,7 @@ class FloatingWindow extends HTMLElement {
 	// Manual movement & resize handling
 
 	/**
-	 * This function initalizes the window movement (see `moveWindow()`) from a mouse event, by setting modifiers which will later be used along with the mouse's movement to move and resize the window
+	 * This function initializes the window movement (see `moveWindow()`) from a mouse event, by setting modifiers which will later be used along with the mouse's movement to move and resize the window
 	 * E.g.: Moving the mouse horizontally would affect the window to change it's width by "changeModifiers.width <horizontal mouse movement>"
 	 *       In case the mouse movement is 10px and the modifier value is "2*", then the width will be changed by "2* 10px". basically the width increases / decreases with double the speed of the mouse movement
 	 *       A modifier value of "0*" in this case disables width change
@@ -650,7 +650,7 @@ class FloatingWindow extends HTMLElement {
 			this.fixateImplicitSize();
 		}
 
-		// Store inital positioning values
+		// Store initial positioning values
 		this.dataset.mouseDownX = event.clientX;
 		this.dataset.mouseDownY = event.clientY;
 
@@ -676,7 +676,7 @@ class FloatingWindow extends HTMLElement {
 	}
 
 	/**
-	 * Move / resize the floating window according to the inital setup (see grabWindow())
+	 * Move / resize the floating window according to the initial setup (see grabWindow())
 	 *
 	 * @param {MouseEvent} event Event caused by dragging the window with the mouse
 	 */
@@ -723,7 +723,7 @@ class FloatingWindow extends HTMLElement {
 	 * Finalizes the repositioning / resizing of the window (see moveWindow())
 	 */
 	releaseWindow(event) {
-		// Delete inital positioning values
+		// Delete initial positioning values
 		delete this.dataset.mouseDownX;
 		delete this.dataset.mouseDownY;
 
