@@ -144,6 +144,16 @@ class FloatingWindow extends HTMLElement {
 
 		let propagationStopper = event => {event.stopPropagation();};
 
+		/**
+		 * Creates a generic button (div) for window positioning
+		 * Hides all elements marked as "switchable" in the window
+		 * 
+		 * @param {string} positionButtonId Id of the element
+		 * @param {string} text Text shown, preferably an icon-like character
+		 * @param {EventListener | undefined} listenerFunction Listener for clicking
+		 * @param {boolean} stopPropagation Stops the event's propagation if true
+		 * @returns {Element} The position button element
+		 */
 		let createPositionButton = (positionButtonId = "", text = "", listenerFunction = undefined, stopPropagation = true) => {
 			let positionButton = document.createElement("div");
 			positionButton.id = positionButtonId;
