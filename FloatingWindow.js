@@ -203,7 +203,27 @@ class FloatingWindow extends HTMLElement {
 
 		for (let rowNum = 0; rowNum < 3; rowNum++) {
 			for (let colNum = 0; colNum < 3; colNum++) {
-				let fixedButton = createPositionButton("fixed" + rowNum + colNum, fixedButtonTexts[rowNum][colNum], () => this.applyFixedStyle({ x: colNum * 50, y: rowNum * 50 }, { x: colNum * 50, y: rowNum * 50 }));
+				/**
+				 * Event handler for the specific fixed style buttons
+				 * 
+				 * @param {MouseEvent} event 
+				 */
+				const applySpecificFixedStyle = (event) => {
+					if (event.shiftKey) {
+						this.applyFixedStyle(
+							{x: `calc(${colNum * 50}vw)`, y: `calc(${rowNum * 50}vh)`},
+							undefined,
+							{ x: colNum * 50, y: rowNum * 50 }
+						);
+					} else {
+						this.applyFixedStyle(
+							{x: `calc(${colNum * 50}vw)`, y: `calc(${rowNum * 50}vh)`},
+							{x: `calc(${colNum % 2 == 0 ? 50 : 100}vw)`, y: `calc(${rowNum % 2 == 0 ? 50 : 100}vh)`},
+							{ x: colNum * 50, y: rowNum * 50 }
+						);
+					}
+				};
+				let fixedButton = createPositionButton("fixed" + rowNum + colNum, fixedButtonTexts[rowNum][colNum], applySpecificFixedStyle);
 				fixedButton.classList.add("fixedButton");
 
 				fixedButtonGrid.appendChild(fixedButton);
@@ -557,16 +577,34 @@ class FloatingWindow extends HTMLElement {
 	 * Applies fixed floating style.
 	 * - Set BasicFloatingStyle
 	 * - Set position and size, adjusted for the theoretical anchor
+	 *   - If a size is defined while the size type is Auto, it will be changed to Viewport in order for the size to be applicable
+	 * 
+	 * @param {{x?: string, y?: string} | undefined} position New floating window position defined by css calc strings for both dimensions
+	 * @param {{x?: string, y?: string} | undefined} size New floating window size defined by css calc strings for both dimensions
+	 * @param {{x: number, y: number}} anchor Theoretical anchor defined by window percents for both dimensions. Only used if the corresponding position dimension is provided
 	 */
-	applyFixedStyle(positionInViewport = { x: 0, y: 0 }, anchorInWindowPercent = { x: 0, y: 0 }) {
+	applyFixedStyle(position = undefined, size = undefined, anchor = { x: 0, y: 0 }) {
 		this.applyBasicFloatingStyle();
 
-		let size = this.getBoundingClientRect();
+		if (size) {
+			if (size.x) {this.style.width = size.x;}
+			if (size.y) {this.style.height = size.y;}
+		}
 
-		this.style.top = `calc(${positionInViewport.y}vh + ${(size.height * -anchorInWindowPercent.y) / 100}px`;
-		this.style.left = `calc(${positionInViewport.x}vw + ${(size.width * -anchorInWindowPercent.x) / 100}px`;
+		let currentSize = this.getBoundingClientRect();
 
-		this.onFloatingDataChange_sizeType();
+		if (position) {
+			if (position.x) {this.style.left = `calc(${position.x} + ${(currentSize.width * -anchor.x) / 100}px)`;};
+			if (position.y) {this.style.top = `calc(${position.y} + ${(currentSize.height * -anchor.y) / 100}px)`;};
+		}
+
+		if (size && this.dataset.sizeType == "Auto") {
+			// Auto must be changed for the defined size not to be removed
+			this.dataset.sizeType = "Viewport";
+		} else {
+			// The size type is reapplied so the positioning is converted to the appropriate units
+			this.onFloatingDataChange_sizeType();
+		}
 	}
 
 	/**
@@ -2009,7 +2047,6 @@ dialog::backdrop {
 
 		contentStyle.textContent = chromeDefault + customExtension;
 	}
-
 }
 
 // Register FloatingWindow
