@@ -556,33 +556,17 @@ class FloatingWindow extends HTMLElement {
 	/**
 	 * Applies fixed floating style.
 	 * - Set BasicFloatingStyle
-	 * - Set used size unit to pixel
-	 * - Set position and size
+	 * - Set position and size, adjusted for the theoretical anchor
 	 */
 	applyFixedStyle(positionInViewport = { x: 0, y: 0 }, anchorInWindowPercent = { x: 0, y: 0 }) {
 		this.applyBasicFloatingStyle();
 
 		let size = this.getBoundingClientRect();
-		let anchorCorrection = {
-			x: (size.width * -anchorInWindowPercent.x) / 100 + "px",
-			y: (size.height * -anchorInWindowPercent.y) / 100 + "px",
-		};
 
-		// Change to viewport based on position mode
-		if (this.dataset.sizeType == "Viewport") {
-			anchorCorrection.x = FloatingWindow.calcObjToString(FloatingWindow.convertStyleCalcSizeToViewport(anchorCorrection.x, 100, 0));
-			anchorCorrection.y = FloatingWindow.calcObjToString(FloatingWindow.convertStyleCalcSizeToViewport(anchorCorrection.y, 0, 100));
-		}
+		this.style.top = `calc(${positionInViewport.y}vh + ${(size.height * -anchorInWindowPercent.y) / 100}px`;
+		this.style.left = `calc(${positionInViewport.x}vw + ${(size.width * -anchorInWindowPercent.x) / 100}px`;
 
-		let position = {
-			x: FloatingWindow.calcObjToString(FloatingWindow.simplifyStyleCalcSize(`(${positionInViewport.x}vw ${anchorCorrection.x}`)),
-			y: FloatingWindow.calcObjToString(FloatingWindow.simplifyStyleCalcSize(`(${positionInViewport.y}vh ${anchorCorrection.y}`)),
-		};
-
-		this.style.cssText += `
-			top: ${position.y};
-			left: ${position.x};
-		`;
+		this.onFloatingDataChange_sizeType();
 	}
 
 	/**
