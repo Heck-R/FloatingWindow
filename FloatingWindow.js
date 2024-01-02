@@ -203,7 +203,7 @@ class FloatingWindow extends HTMLElement {
 
 		for (let rowNum = 0; rowNum < 3; rowNum++) {
 			for (let colNum = 0; colNum < 3; colNum++) {
-				let fixedButton = createPositionButton("fixed" + rowNum + colNum, fixedButtonTexts[rowNum][colNum], this.applyFixedStyle.bind(this, { x: colNum * 50, y: rowNum * 50 }, { x: colNum * 50, y: rowNum * 50 }));
+				let fixedButton = createPositionButton("fixed" + rowNum + colNum, fixedButtonTexts[rowNum][colNum], () => this.applyFixedStyle({ x: colNum * 50, y: rowNum * 50 }, { x: colNum * 50, y: rowNum * 50 }));
 				fixedButton.classList.add("fixedButton");
 
 				fixedButtonGrid.appendChild(fixedButton);
