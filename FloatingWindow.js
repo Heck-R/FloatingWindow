@@ -391,7 +391,7 @@ class FloatingWindow extends HTMLElement {
 
 	/**
 	 * Converts a css calc() string to viewport
-	 * Whether a viewport width or height is the target is ambuguous by default, so this can be controlled using the percentage parameters
+	 * Whether a viewport width or height is the target is ambiguous by default, so this can be controlled using the percentage parameters
 	 *
 	 * @param {String} originalCalc
 	 * @param {Number} vwPercentage How many percent of the `originalCalc` needs to be converted into viewport width
