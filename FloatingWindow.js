@@ -48,7 +48,7 @@ class FloatingWindow extends HTMLElement {
 		// Create dataset variable observers (initiated in connectedCallback())
 		let observer = new MutationObserver(mutations => {
 			mutations.forEach(mutation => {
-				if (mutation.type == "attributes") {
+				if (mutation.type == "attributes" && mutation.attributeName) {
 					// prettier-ignore
 					let datasetVariableName = mutation.attributeName
 						.replace(/^data-/, "")
@@ -664,7 +664,9 @@ class FloatingWindow extends HTMLElement {
 	 * Closes floating window by removing it from the parent element
 	 */
 	closeWindow() {
-		this.parentElement.removeChild(this);
+		if (this.parentElement) {
+			this.parentElement.removeChild(this);
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -699,8 +701,8 @@ class FloatingWindow extends HTMLElement {
 		}
 
 		// Store initial positioning values
-		this.dataset.mouseDownX = event.clientX;
-		this.dataset.mouseDownY = event.clientY;
+		this.dataset.mouseDownX = event.clientX.toString();
+		this.dataset.mouseDownY = event.clientY.toString();
 
 		this.dataset.mouseDownLeft = this.style.left;
 		this.dataset.mouseDownTop = this.style.top;
@@ -729,13 +731,17 @@ class FloatingWindow extends HTMLElement {
 	 * @param {MouseEvent} event Event caused by dragging the window with the mouse
 	 */
 	moveWindow(event) {
+		if (!this.dataset.mouseDownY || !this.dataset.mouseDownX || !this.dataset.mouseDownTop || !this.dataset.mouseDownLeft) {
+			return;
+		}
+
 		// Position
-		this.style.top = `calc(${this.dataset.mouseDownTop} + (${this.dataset.changeModifierTop} ${event.clientY - this.dataset.mouseDownY}px))`;
-		this.style.left = `calc(${this.dataset.mouseDownLeft} + (${this.dataset.changeModifierLeft} ${event.clientX - this.dataset.mouseDownX}px))`;
+		this.style.top = `calc(${this.dataset.mouseDownTop} + (${this.dataset.changeModifierTop} ${event.clientY - parseInt(this.dataset.mouseDownY)}px))`;
+		this.style.left = `calc(${this.dataset.mouseDownLeft} + (${this.dataset.changeModifierLeft} ${event.clientX - parseInt(this.dataset.mouseDownX)}px))`;
 
 		// Size
-		this.style.width = `calc(${this.dataset.mouseDownWidth} + (${this.dataset.changeModifierWidth} ${event.clientX - this.dataset.mouseDownX}px))`;
-		this.style.height = `calc(${this.dataset.mouseDownHeight} + (${this.dataset.changeModifierHeight} ${event.clientY - this.dataset.mouseDownY}px))`;
+		this.style.width = `calc(${this.dataset.mouseDownWidth} + (${this.dataset.changeModifierWidth} ${event.clientX - parseInt(this.dataset.mouseDownX)}px))`;
+		this.style.height = `calc(${this.dataset.mouseDownHeight} + (${this.dataset.changeModifierHeight} ${event.clientY - parseInt(this.dataset.mouseDownY)}px))`;
 
 		if (this.dataset.changeModifierHeight == "0*" && this.dataset.changeModifierWidth == "0*") {
 			return;
