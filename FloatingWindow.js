@@ -52,8 +52,7 @@ class FloatingWindow extends HTMLElement {
 					// prettier-ignore
 					let datasetVariableName = mutation.attributeName
 						.replace(/^data-/, "")
-						.replace(/([-][a-z])/g, group => group.toUpperCase()
-						.replace("-", ""));
+						.replace(/([-][a-z])/g, group => group.toUpperCase().replace("-", ""));
 					this[`onFloatingDataChange_${datasetVariableName}`]();
 				}
 			});
