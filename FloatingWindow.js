@@ -556,12 +556,16 @@ class FloatingWindow extends HTMLElement {
 	 * It also implicitly reapplies the size type in order for the size to be in the appropriate unit
 	 */
 	fixLessThatMinSize() {
+		// This makes sure that the calc() strings are simplified and thus usable below for dumb extraction of units
+		this.onFloatingDataChange_sizeType();
+
 		let atLeastMinWidth = FloatingWindow.calcMinMax("max", this.style.width, this.style["min-width"]) ? this.style.width : this.style["min-width"];
 		let atLeastMinHeight = FloatingWindow.calcMinMax("max", this.style.height, this.style["min-height"]) ? this.style.height : this.style["min-height"];
 
 		this.style.width = `${atLeastMinWidth}px`;
 		this.style.height = `${atLeastMinHeight}px`;
 
+		// This makes sure that the positioning is defined using the right units
 		this.onFloatingDataChange_sizeType();
 	}
 
@@ -817,7 +821,9 @@ class FloatingWindow extends HTMLElement {
 	 * @param {MouseEvent} event Event caused by dragging the window with the mouse
 	 */
 	moveWindow(event) {
-		if (!this.dataset.mouseDownY || !this.dataset.mouseDownX || !this.dataset.mouseDownTop || !this.dataset.mouseDownLeft) {
+		if (this.dataset.mouseDownY === undefined || this.dataset.mouseDownX === undefined ||
+			this.dataset.mouseDownTop === undefined || this.dataset.mouseDownLeft === undefined ||
+			this.dataset.mouseDownWidth === undefined || this.dataset.mouseDownHeight === undefined) {
 			return;
 		}
 
@@ -825,6 +831,14 @@ class FloatingWindow extends HTMLElement {
 		const restored = this.restorePosition(true, false, true);
 		if (restored) {
 			// When the window is restored to a previous state, the "original position" saved in grabWindow() has to be adjusted to it
+			
+			// Css calc() would be nice, but "/" only works if the divisor is not a length unit, so at least part of the calculation cannot be solved with calc()
+			const windowBoundingRect = this.getBoundingClientRect();
+			const restoredWindowRelativeLeft = FloatingWindow.convertStyleCalcSizeToPx(this.dataset.mouseDownLeft) - parseInt(this.dataset.mouseDownX);
+			const restoredWindowRelativeLeftRatio = restoredWindowRelativeLeft / FloatingWindow.convertStyleCalcSizeToPx(this.dataset.mouseDownWidth);
+			const windowRelativePosition = restoredWindowRelativeLeftRatio * windowBoundingRect.width;
+			this.dataset.mouseDownLeft = `calc(${this.dataset.mouseDownX}px + ${windowRelativePosition}px)`;
+			
 			this.dataset.mouseDownWidth = this.style.width;
 			this.dataset.mouseDownHeight = this.style.height;
 		}
@@ -836,35 +850,6 @@ class FloatingWindow extends HTMLElement {
 		// Size
 		this.style.width = `calc(${this.dataset.mouseDownWidth} + (${this.dataset.changeModifierWidth} ${event.clientX - parseInt(this.dataset.mouseDownX)}px))`;
 		this.style.height = `calc(${this.dataset.mouseDownHeight} + (${this.dataset.changeModifierHeight} ${event.clientY - parseInt(this.dataset.mouseDownY)}px))`;
-
-		if (this.dataset.changeModifierHeight == "0*" && this.dataset.changeModifierWidth == "0*") {
-			return;
-		}
-
-		// Restrict minimum window size
-		let heightDecreased = FloatingWindow.calcMinMax("min", this.dataset.mouseDownTop, this.style.top);
-		let widthDecreased = FloatingWindow.calcMinMax("min", this.dataset.mouseDownLeft, this.style.left);
-
-		if (!(heightDecreased || widthDecreased)) {
-			return;
-		}
-
-		let minSizePx = {
-			width: FloatingWindow.convertStyleCalcSizeToPx(this.style["min-width"]),
-			height: FloatingWindow.convertStyleCalcSizeToPx(this.style["min-height"]),
-		};
-
-		let restrictedPos = {
-			top: `calc(${this.dataset.mouseDownTop} + ${this.dataset.mouseDownHeight} - ${minSizePx.height}px)`,
-			left: `calc(${this.dataset.mouseDownLeft} + ${this.dataset.mouseDownWidth} - ${minSizePx.width}px)`,
-		};
-
-		if (this.dataset.changeModifierHeight != "0*" && heightDecreased) {
-			this.style.top = FloatingWindow.calcMinMax("max", this.style.height, this.style["min-height"]) ? this.style.top : restrictedPos.top;
-		}
-		if (this.dataset.changeModifierWidth != "0*" && widthDecreased) {
-			this.style.left = FloatingWindow.calcMinMax("max", this.style.width, this.style["min-width"]) ? this.style.left : restrictedPos.left;
-		}
 	}
 
 	/**
