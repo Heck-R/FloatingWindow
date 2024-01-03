@@ -131,8 +131,22 @@ class FloatingWindow extends HTMLElement {
 		// Navbar
 		let navigationBar = document.createElement("div");
 		navigationBar.id = "navigationBar";
-		navigationBar.addEventListener("mousedown", this.grabWindow.bind(this, { top: "1*", left: "1*" }));
-		navigationBar.addEventListener("dblclick", this.applyMaximizedStyle.bind(this));
+		navigationBar.addEventListener("mousedown", event => {
+			// Allow window restoration when the navigation bar is dragged
+			this.dataset.allowRestoration = "true";
+			this.grabWindow({ top: "1*", left: "1*" }, event);
+		});
+		navigationBar.addEventListener("dblclick", () => {
+			if (this.dataset.restorablePosition) {
+				// Restore if in special style
+				this.dataset.allowRestoration = "true";
+				this.restorePosition();
+			} else {
+				this.applyMaximizedStyle();
+			}
+		});
+		// Remove restoration approval in case it was a simple click and no movement
+		navigationBar.addEventListener("mouseup", () => {delete this.dataset.allowRestoration;});
 
 		this.boundMoveWindow = this.moveWindow.bind(this);
 		this.boundReleaseWindow = this.releaseWindow.bind(this);
@@ -192,7 +206,13 @@ class FloatingWindow extends HTMLElement {
 
 		let sizeTypes = ["Viewport", "Fixed", "Auto"];
 		for (let sizeType of sizeTypes) {
-			let sizeTypeButton = createPositionButton("sizeType" + sizeType, sizeType, () => {this.dataset.sizeType = sizeType;});
+			let sizeTypeButton = createPositionButton("sizeType" + sizeType, sizeType, () => {
+				this.dataset.sizeType = sizeType;
+
+				// This is considered an action which "exits" a special mode, so no restoration should happen after this
+				delete this.dataset.allowRestoration;
+				delete this.dataset.restorablePosition;
+			});
 			sizeTypeButton.classList.add("sizeTypeButton");
 
 			sizeTypeButtonPanel.appendChild(sizeTypeButton);
@@ -533,6 +553,7 @@ class FloatingWindow extends HTMLElement {
 
 	/**
 	 * Sets the size to the minimum when it is set to smaller (in order to avoid resizing problems later on)
+	 * It also implicitly reapplies the size type in order for the size to be in the appropriate unit
 	 */
 	fixLessThatMinSize() {
 		let atLeastMinWidth = FloatingWindow.calcMinMax("max", this.style.width, this.style["min-width"]) ? this.style.width : this.style["min-width"];
@@ -542,6 +563,65 @@ class FloatingWindow extends HTMLElement {
 		this.style.height = `${atLeastMinHeight}px`;
 
 		this.onFloatingDataChange_sizeType();
+	}
+
+	/**
+	 * Saves the current positioning (size type, position, size)
+	 * Only one save is stored
+	 * This is intended to be used for restoring the state (with this.restorePosition()) after special styles (e.g.: maximized)
+	 * The sheer existence of the saved state signifies that a specials style is currently applied
+	 *
+	 * @param {boolean} overwrite If true, save will be overwritten, otherwise the save will only happen if there is no previous save
+	 */
+	saveRestorablePosition(overwrite = false) {
+		if (overwrite || !this.dataset.restorablePosition) {
+			this.dataset.restorablePosition = JSON.stringify({
+				sizeType: this.dataset.sizeType,
+				top: this.style.top,
+				left: this.style.left,
+				width: this.style.width,
+				height: this.style.height,
+			});
+		}
+	}
+
+	/**
+	 * Restores a previously saved state (with this.saveRestorablePosition()) if there is any, and restoration is allowed through the this.dataset.allowRestoration
+	 * This is intended to be used for restoring the state (with this.restorePosition()) after special styles (e.g.: maximized)
+	 * The existence of a saved state implies that a special style is active, so it is implicitly deleted here
+	 *
+	 * @param {boolean} type If true, the size type is restored
+	 * @param {boolean} position If true, the position is restored
+	 * @param {boolean} size If true, the size is restored
+	 *
+	 * @returns {boolean} Shows whether or not a restoration took place
+	 */
+	restorePosition(type = true, position = true, size = true) {
+		if (!this.dataset.allowRestoration || !this.dataset.restorablePosition) {
+			// Restoration is only attempted on non-special styling, so the saved state is deleted even if not actually restored
+			delete this.dataset.restorablePosition;
+			return false;
+		}
+		const restoreData = JSON.parse(this.dataset.restorablePosition);
+		delete this.dataset.allowRestoration;
+		delete this.dataset.restorablePosition;
+
+		if (position) {
+			this.style.top = restoreData.top;
+			this.style.left = restoreData.left;
+		}
+
+		if (size) {
+			this.style.width = restoreData.width;
+			this.style.height = restoreData.height;
+		}
+
+		// Setting the type last because it will automatically convert the units if necessary (although it should not be)
+		if (type) {
+			this.dataset.sizeType = restoreData.sizeType;
+		}
+
+		return true;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -587,24 +667,34 @@ class FloatingWindow extends HTMLElement {
 	 * - Set BasicFloatingStyle
 	 * - Set position and size, adjusted for the theoretical anchor
 	 *   - If a size is defined while the size type is Auto, it will be changed to Viewport in order for the size to be applicable
-	 * 
+	 *
 	 * @param {{x?: string, y?: string} | undefined} position New floating window position defined by css calc strings for both dimensions
 	 * @param {{x?: string, y?: string} | undefined} size New floating window size defined by css calc strings for both dimensions
 	 * @param {{x: number, y: number}} anchor Theoretical anchor defined by window percents for both dimensions. Only used if the corresponding position dimension is provided
 	 */
 	applyFixedStyle(position = undefined, size = undefined, anchor = { x: 0, y: 0 }) {
+		this.saveRestorablePosition();
+
 		this.applyBasicFloatingStyle();
 
 		if (size) {
-			if (size.x) {this.style.width = size.x;}
-			if (size.y) {this.style.height = size.y;}
+			if (size.x) {
+				this.style.width = size.x;
+			}
+			if (size.y) {
+				this.style.height = size.y;
+			}
 		}
 
 		let currentSize = this.getBoundingClientRect();
 
 		if (position) {
-			if (position.x) {this.style.left = `calc(${position.x} + ${(currentSize.width * -anchor.x) / 100}px)`;};
-			if (position.y) {this.style.top = `calc(${position.y} + ${(currentSize.height * -anchor.y) / 100}px)`;};
+			if (position.x) {
+				this.style.left = `calc(${position.x} + ${(currentSize.width * -anchor.x) / 100}px)`;
+			}
+			if (position.y) {
+				this.style.top = `calc(${position.y} + ${(currentSize.height * -anchor.y) / 100}px)`;
+			}
 		}
 
 		if (size && this.dataset.sizeType == "Auto") {
@@ -614,6 +704,9 @@ class FloatingWindow extends HTMLElement {
 			// The size type is reapplied so the positioning is converted to the appropriate units
 			this.onFloatingDataChange_sizeType();
 		}
+
+		// Fix and change size to appropriate type
+		this.fixLessThatMinSize();
 	}
 
 	/**
@@ -626,15 +719,13 @@ class FloatingWindow extends HTMLElement {
 	applyMaximizedStyle() {
 		this.applyBasicFloatingStyle();
 
+		// prettier-ignore
+		this.applyFixedStyle(
+			{x: `calc(0vw)`, y: `calc(0vh)`},
+			{x: `calc(100vw)`, y: `calc(100vh)`}
+		);
+
 		this.dataset.sizeType = "Viewport";
-
-		this.style.cssText += `
-			top: 0;
-			left: 0;
-
-			width: 100vw;
-			height: 100vh;
-		`;
 	}
 
 	/**
@@ -646,17 +737,13 @@ class FloatingWindow extends HTMLElement {
 	applyMinimizedStyle() {
 		this.applyBasicFloatingStyle();
 
+		// prettier-ignore
+		this.applyFixedStyle(
+			{x: `calc(0vw)`, y: `calc(0vh)`},
+			{x: `calc(0px)`, y: `calc(0px)`}
+		);
+
 		this.dataset.sizeType = "Fixed";
-
-		this.style.cssText += `
-			top: 0;
-			left: 0;
-
-			width: 0;
-			height: 0;
-		`;
-
-		this.fixLessThatMinSize();
 	}
 
 	/**
@@ -734,6 +821,14 @@ class FloatingWindow extends HTMLElement {
 			return;
 		}
 
+		// Manual handling of the window is not a special state from which restoration is desired, so the state is deleted after restored
+		const restored = this.restorePosition(true, false, true);
+		if (restored) {
+			// When the window is restored to a previous state, the "original position" saved in grabWindow() has to be adjusted to it
+			this.dataset.mouseDownWidth = this.style.width;
+			this.dataset.mouseDownHeight = this.style.height;
+		}
+
 		// Position
 		this.style.top = `calc(${this.dataset.mouseDownTop} + (${this.dataset.changeModifierTop} ${event.clientY - parseInt(this.dataset.mouseDownY)}px))`;
 		this.style.left = `calc(${this.dataset.mouseDownLeft} + (${this.dataset.changeModifierLeft} ${event.clientX - parseInt(this.dataset.mouseDownX)}px))`;
@@ -800,10 +895,7 @@ class FloatingWindow extends HTMLElement {
 		document.body.removeEventListener("mousemove", this.boundMoveWindow);
 		document.body.removeEventListener("mouseup", this.boundReleaseWindow);
 
-		// Change size to appropriate type
-		this.onFloatingDataChange_sizeType();
-
-		// Fix size
+		// Fix and change size to appropriate type
 		this.fixLessThatMinSize();
 	}
 
