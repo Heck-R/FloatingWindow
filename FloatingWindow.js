@@ -324,7 +324,7 @@ class FloatingWindow extends HTMLElement {
 	 * Convert a calc Object to a css calc() string
 	 *
 	 * @param {Object} calcObj An Object representing a css calc(). E.g.: {px: 1, vw: -2}
-	 * @returns {String} Css calc() string e.g.: calc(1px - 2vw)
+	 * @returns {string} Css calc() string e.g.: calc(1px - 2vw)
 	 */
 	static calcObjToString(calcObj) {
 		let calcString = "";
@@ -341,7 +341,7 @@ class FloatingWindow extends HTMLElement {
 	/**
 	 * Sums up same units of a css calc() string
 	 *
-	 * @param {String} originalCalc, which can include px, vw and vh units e.g.: calc(1px - 2vw)
+	 * @param {string} originalCalc, which can include px, vw and vh units e.g.: calc(1px - 2vw)
 	 * @returns {Object} Calc Object with sum of the units, always containing all units e.g: {px: 1, vw: -2, vh: 0}
 	 */
 	static simplifyStyleCalcSize(originalCalc) {
@@ -375,8 +375,8 @@ class FloatingWindow extends HTMLElement {
 	/**
 	 * Converts a css calc() string to pixel
 	 *
-	 * @param {String} originalCalc e.g.: calc(10px - 2vw)
-	 * @returns {Number} Size defined by the calc() string converted into pixels e.g: 6px
+	 * @param {string} originalCalc e.g.: calc(10px - 2vw)
+	 * @returns {number} Size defined by the calc() string converted into pixels e.g: 6px
 	 */
 	static convertStyleCalcSizeToPx(originalCalc) {
 		let objectCalc = FloatingWindow.simplifyStyleCalcSize(originalCalc);
@@ -393,9 +393,9 @@ class FloatingWindow extends HTMLElement {
 	 * Converts a css calc() string to viewport
 	 * Whether a viewport width or height is the target is ambiguous by default, so this can be controlled using the percentage parameters
 	 *
-	 * @param {String} originalCalc
-	 * @param {Number} vwPercentage How many percent of the `originalCalc` needs to be converted into viewport width
-	 * @param {Number} vhPercentage How many percent of the `originalCalc` needs to be converted into viewport height
+	 * @param {string} originalCalc
+	 * @param {number} vwPercentage How many percent of the `originalCalc` needs to be converted into viewport width
+	 * @param {number} vhPercentage How many percent of the `originalCalc` needs to be converted into viewport height
 	 * @returns {Object} Size defined by the calc() string converted into viewport
 	 */
 	static convertStyleCalcSizeToViewport(originalCalc, vwPercentage, vhPercentage) {
@@ -431,8 +431,8 @@ class FloatingWindow extends HTMLElement {
 	/**
 	 * Multiply a css calc() in a way it stays handleable later on
 	 *
-	 * @param {String} originalCalc
-	 * @param {Number} multiplier
+	 * @param {string} originalCalc
+	 * @param {number} multiplier
 	 * @returns {Object} Calc Object with the multiplied unit values
 	 */
 	static multiplyStyleCalcSize(originalCalc, multiplier) {
@@ -453,8 +453,8 @@ class FloatingWindow extends HTMLElement {
 	 * Compares the represented sizes of two css calc() strings
 	 *
 	 * @param {"min"|"max"} minMax Defines whether or not to check for the first parameter being greater or less then the second
-	 * @param {String} calcSize1
-	 * @param {String} calcSize2
+	 * @param {string} calcSize1
+	 * @param {string} calcSize2
 	 * @returns {Boolean} Whether or not the first calc() is strictly greater / less (based on the `minMax` param) than the second calc()
 	 */
 	static calcMinMax(minMax, calcSize1, calcSize2) {
