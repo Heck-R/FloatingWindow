@@ -6,7 +6,7 @@
  * - Size modes can be applied
  *   - Auto: Resized based on content, and keeps position
  *   - Fixed: Preserves size and position
- *   - Viewport: Resizes and repositions in a way to always occupy the same relative place on the viewport
+ *   - Relative: Resizes and repositions in a way to always occupy the same relative location
  * - Ignores page css
  *
  * Content can be added to the FloatingWindow.content element
@@ -42,8 +42,8 @@ class FloatingWindow extends HTMLElement {
 		this.sizerThickness = "5px";
 		this.windowBorderRadius = "calc(5px)";
 		this.navigationBarHeight = "calc(10px + 1.5vh)";
-		this.minWindowWidth = FloatingWindow.calcObjToString(FloatingWindow.multiplyStyleCalcSize(this.navigationBarHeight, 9));
-		this.minFixedButtonSize = FloatingWindow.calcObjToString(FloatingWindow.multiplyStyleCalcSize(this.minWindowWidth, 3 / 6));
+		this.minWindowWidth = "calc(90px + 13.5vh)"; // 9 * navigationBarHeight - Why? Because that ratio looks nice
+		this.minFixedButtonSize = "calc(45px + 6.75vh)"; // 3/6 * minWindowWidth - Why? Because there are 6 button slots in the nav bar and this spans 3 like this
 
 		// Create dataset variable observers (initiated in connectedCallback())
 		let observer = new MutationObserver(mutations => {
@@ -204,7 +204,7 @@ class FloatingWindow extends HTMLElement {
 		sizeTypeButtonPanel.classList.add("switchable");
 		sizeTypeButtonPanel.classList.add("hidden");
 
-		let sizeTypes = ["Viewport", "Fixed", "Auto"];
+		let sizeTypes = ["Relative", "Fixed", "Auto"];
 		for (let sizeType of sizeTypes) {
 			let sizeTypeButton = createPositionButton("sizeType" + sizeType, sizeType, () => {
 				this.dataset.sizeType = sizeType;
@@ -240,14 +240,14 @@ class FloatingWindow extends HTMLElement {
 				const applySpecificFixedStyle = (event) => {
 					if (event.shiftKey) {
 						this.applyFixedStyle(
-							{x: `calc(${colNum * 50}vw)`, y: `calc(${rowNum * 50}vh)`},
+							{x: `calc(${colNum * 50}%)`, y: `calc(${rowNum * 50}%)`},
 							undefined,
 							{ x: colNum * 50, y: rowNum * 50 }
 						);
 					} else {
 						this.applyFixedStyle(
-							{x: `calc(${colNum * 50}vw)`, y: `calc(${rowNum * 50}vh)`},
-							{x: `calc(${colNum % 2 == 0 ? 50 : 100}vw)`, y: `calc(${rowNum % 2 == 0 ? 50 : 100}vh)`},
+							{x: `calc(${colNum * 50}%)`, y: `calc(${rowNum * 50}%)`},
+							{x: `calc(${colNum % 2 == 0 ? 50 : 100}%)`, y: `calc(${rowNum % 2 == 0 ? 50 : 100}%)`},
 							{ x: colNum * 50, y: rowNum * 50 }
 						);
 					}
@@ -323,8 +323,8 @@ class FloatingWindow extends HTMLElement {
 	/**
 	 * Convert a calc Object to a css calc() string
 	 *
-	 * @param {Object} calcObj An Object representing a css calc(). E.g.: {px: 1, vw: -2}
-	 * @returns {string} Css calc() string e.g.: calc(1px - 2vw)
+	 * @param {Object} calcObj An Object representing a css calc(). E.g.: {px: 1, %: -2}
+	 * @returns {string} Css calc() string e.g.: calc(1px - 2%)
 	 */
 	static calcObjToString(calcObj) {
 		let calcString = "";
@@ -341,13 +341,14 @@ class FloatingWindow extends HTMLElement {
 	/**
 	 * Sums up same units of a css calc() string
 	 *
-	 * @param {string} originalCalc, which can include px, vw and vh units e.g.: calc(1px - 2vw)
-	 * @returns {Object} Calc Object with sum of the units, always containing all units e.g: {px: 1, vw: -2, vh: 0}
+	 * @param {string} originalCalc, which can include vw, vh, px and % units e.g.: calc(1px - 2%)
+	 * @returns {Object} Calc Object with sum of the units, always containing all units e.g: {px: 1, %: -2}
 	 */
 	static simplifyStyleCalcSize(originalCalc) {
 		let calcNoSpace = originalCalc.replaceAll(" ", "");
 		let vwInstances = calcNoSpace.matchAll(/(-?[\d\.]+)vw/g);
 		let vhInstances = calcNoSpace.matchAll(/(-?[\d\.]+)vh/g);
+		let percentInstances = calcNoSpace.matchAll(/(-?[\d\.]+)%/g);
 		let pxInstances = calcNoSpace.matchAll(/(-?[\d\.]+)px/g);
 
 		let vwSum = 0;
@@ -360,6 +361,11 @@ class FloatingWindow extends HTMLElement {
 			vhSum += Number(vhInstance[1]);
 		}
 
+		let percentSum = 0;
+		for (let percentInstance of percentInstances) {
+			percentSum += Number(percentInstance[1]);
+		}
+
 		let pxSum = 0;
 		for (let pxInstance of pxInstances) {
 			pxSum += Number(pxInstance[1]);
@@ -368,6 +374,7 @@ class FloatingWindow extends HTMLElement {
 		return {
 			vw: vwSum,
 			vh: vhSum,
+			"%": percentSum,
 			px: pxSum,
 		};
 	}
@@ -375,78 +382,40 @@ class FloatingWindow extends HTMLElement {
 	/**
 	 * Converts a css calc() string to pixel
 	 *
-	 * @param {string} originalCalc e.g.: calc(10px - 2vw)
+	 * @param {string} originalCalc e.g.: calc(10px - 2%)
+	 * @param {"w"|"h"} dimension Which dimension should the `originalCalc` be converted into (width or height)
 	 * @returns {number} Size defined by the calc() string converted into pixels e.g: 6px
 	 */
-	static convertStyleCalcSizeToPx(originalCalc) {
+	static convertStyleCalcSizeToPx(originalCalc, dimension) {
 		let objectCalc = FloatingWindow.simplifyStyleCalcSize(originalCalc);
+		
+		const referenceDimensionSize = dimension == "w" ? document.documentElement.clientWidth : document.documentElement.clientHeight;
 
-		let pxSum = 0;
-		pxSum += (window.innerWidth * objectCalc.vw) / 100;
-		pxSum += (window.innerHeight * objectCalc.vh) / 100;
-		pxSum += objectCalc.px;
-
-		return pxSum;
+		const percentPx = referenceDimensionSize * objectCalc["%"] / 100;
+		const vwPx = document.documentElement.clientWidth * objectCalc["vw"] / 100;
+		const vhPx = document.documentElement.clientHeight * objectCalc["vh"] / 100;
+		const px = objectCalc["px"];
+		return percentPx + vwPx + vhPx + px;
 	}
 
 	/**
-	 * Converts a css calc() string to viewport
-	 * Whether a viewport width or height is the target is ambiguous by default, so this can be controlled using the percentage parameters
+	 * Converts a css calc() string to percent
+	 * Whether a width or height is the target is ambiguous by default, so this can be controlled using the percentage parameters
 	 *
 	 * @param {string} originalCalc
-	 * @param {number} vwPercentage How many percent of the `originalCalc` needs to be converted into viewport width
-	 * @param {number} vhPercentage How many percent of the `originalCalc` needs to be converted into viewport height
-	 * @returns {Object} Size defined by the calc() string converted into viewport
+	 * @param {"w"|"h"} dimension Which dimension should the `originalCalc` be converted into (width or height)
+	 * @returns {number} Percent defined by the calc() string
 	 */
-	static convertStyleCalcSizeToViewport(originalCalc, vwPercentage, vhPercentage) {
-		let realVwPercentage;
-		let realVhPercentage;
-
-		if (isNaN(vwPercentage) && isNaN(vhPercentage)) {
-			throw "Must define at least one convert percentage";
-		}
-
-		if (!isNaN(vwPercentage) && isNaN(vhPercentage)) {
-			realVwPercentage = Number(vwPercentage);
-			realVhPercentage = 100 - realVwPercentage;
-		} else if (isNaN(vwPercentage) && !isNaN(vhPercentage)) {
-			realVhPercentage = Number(vhPercentage);
-			realVwPercentage = 100 - realVhPercentage;
-		} else {
-			realVwPercentage = Number(vwPercentage);
-			realVhPercentage = Number(vhPercentage);
-		}
-
+	static convertStyleCalcSizeToPercent(originalCalc, dimension) {
 		let objectCalc = FloatingWindow.simplifyStyleCalcSize(originalCalc);
 
-		let vwSum = objectCalc.vw + (realVwPercentage * objectCalc.px) / window.innerWidth;
-		let vhSum = objectCalc.vh + (realVhPercentage * objectCalc.px) / window.innerHeight;
-
-		return {
-			vw: vwSum,
-			vh: vhSum,
-		};
-	}
-
-	/**
-	 * Multiply a css calc() in a way it stays handleable later on
-	 *
-	 * @param {string} originalCalc
-	 * @param {number} multiplier
-	 * @returns {Object} Calc Object with the multiplied unit values
-	 */
-	static multiplyStyleCalcSize(originalCalc, multiplier) {
-		let objectCalc = FloatingWindow.simplifyStyleCalcSize(originalCalc);
-
-		let vwSum = objectCalc.vw * multiplier;
-		let vhSum = objectCalc.vh * multiplier;
-		let pxSum = objectCalc.px * multiplier;
-
-		return {
-			vw: vwSum,
-			vh: vhSum,
-			px: pxSum,
-		};
+		const referenceDimensionSize = dimension == "w" ? document.documentElement.clientWidth : document.documentElement.clientHeight;
+		
+		const pxPercent = objectCalc["px"] * 100 / referenceDimensionSize;
+		const vwPercent = objectCalc["vw"];
+		const vhPercent = objectCalc["vh"];
+		const percent = objectCalc["%"];
+		return pxPercent + vwPercent + vhPercent + percent;
 	}
 
 	/**
@@ -455,15 +424,16 @@ class FloatingWindow extends HTMLElement {
 	 * @param {"min"|"max"} minMax Defines whether or not to check for the first parameter being greater or less then the second
 	 * @param {string} calcSize1
 	 * @param {string} calcSize2
+	 * @param {"w"|"h"} dimension Which dimension should the `originalCalc` be converted into (width or height)
 	 * @returns {Boolean} Whether or not the first calc() is strictly greater / less (based on the `minMax` param) than the second calc()
 	 */
-	static calcMinMax(minMax, calcSize1, calcSize2) {
+	static calcMinMax(minMax, calcSize1, calcSize2, dimension) {
 		if (!["min", "max"].includes(minMax)) {
 			throw "The minMax parameter's value must be 'min' or 'max'";
 		}
 
-		let pxSize1 = FloatingWindow.convertStyleCalcSizeToPx(calcSize1);
-		let pxSize2 = FloatingWindow.convertStyleCalcSizeToPx(calcSize2);
+		let pxSize1 = FloatingWindow.convertStyleCalcSizeToPx(calcSize1, dimension);
+		let pxSize2 = FloatingWindow.convertStyleCalcSizeToPx(calcSize2, dimension);
 
 		if (pxSize1 == pxSize2) {
 			return false;
@@ -498,25 +468,27 @@ class FloatingWindow extends HTMLElement {
 	 * Handles basic window positioning values based on `this.dataset.sizeType`
 	 */
 	onFloatingDataChange_sizeType() {
-		// Must fixate the size because of 'Auto' mode
-		this.fixateImplicitSize();
+		if (this.dataset.sizeType != "Auto" && (!this.style.width || !this.style.height)) {
+			// For non-Auto modes, the window must have width and height defined
+			this.fixateImplicitSize();
+		}
 
 		switch (this.dataset.sizeType) {
-			case "Viewport":
-				this.style.top = FloatingWindow.calcObjToString(FloatingWindow.convertStyleCalcSizeToViewport(this.style.top, 0, 100));
-				this.style.left = FloatingWindow.calcObjToString(FloatingWindow.convertStyleCalcSizeToViewport(this.style.left, 100, 0));
-				this.style.width = FloatingWindow.calcObjToString(FloatingWindow.convertStyleCalcSizeToViewport(this.style.width, 100, 0));
-				this.style.height = FloatingWindow.calcObjToString(FloatingWindow.convertStyleCalcSizeToViewport(this.style.height, 0, 100));
+			case "Relative":
+				this.style.top = FloatingWindow.convertStyleCalcSizeToPercent(this.style.top, "h") + "%";
+				this.style.left = FloatingWindow.convertStyleCalcSizeToPercent(this.style.left, "w") + "%";
+				this.style.width = FloatingWindow.convertStyleCalcSizeToPercent(this.style.width, "w") + "%";
+				this.style.height = FloatingWindow.convertStyleCalcSizeToPercent(this.style.height, "h") + "%";
 				break;
 			case "Fixed":
-				this.style.top = FloatingWindow.convertStyleCalcSizeToPx(this.style.top) + "px";
-				this.style.left = FloatingWindow.convertStyleCalcSizeToPx(this.style.left) + "px";
-				this.style.width = FloatingWindow.convertStyleCalcSizeToPx(this.style.width) + "px";
-				this.style.height = FloatingWindow.convertStyleCalcSizeToPx(this.style.height) + "px";
+				this.style.top = FloatingWindow.convertStyleCalcSizeToPx(this.style.top, "h") + "px";
+				this.style.left = FloatingWindow.convertStyleCalcSizeToPx(this.style.left, "w") + "px";
+				this.style.width = FloatingWindow.convertStyleCalcSizeToPx(this.style.width, "w") + "px";
+				this.style.height = FloatingWindow.convertStyleCalcSizeToPx(this.style.height, "h") + "px";
 				break;
 			case "Auto":
-				this.style.top = FloatingWindow.convertStyleCalcSizeToPx(this.style.top) + "px";
-				this.style.left = FloatingWindow.convertStyleCalcSizeToPx(this.style.left) + "px";
+				this.style.top = FloatingWindow.convertStyleCalcSizeToPx(this.style.top, "h") + "px";
+				this.style.left = FloatingWindow.convertStyleCalcSizeToPx(this.style.left, "w") + "px";
 				this.style.width = "";
 				this.style.height = "";
 				break;
@@ -559,8 +531,8 @@ class FloatingWindow extends HTMLElement {
 		// This makes sure that the calc() strings are simplified and thus usable below for dumb extraction of units
 		this.onFloatingDataChange_sizeType();
 
-		let atLeastMinWidth = FloatingWindow.calcMinMax("max", this.style.width, this.style["min-width"]) ? this.style.width : this.style["min-width"];
-		let atLeastMinHeight = FloatingWindow.calcMinMax("max", this.style.height, this.style["min-height"]) ? this.style.height : this.style["min-height"];
+		let atLeastMinWidth = FloatingWindow.calcMinMax("max", this.style.width, this.style["min-width"], "w") ? this.style.width : this.style["min-width"];
+		let atLeastMinHeight = FloatingWindow.calcMinMax("max", this.style.height, this.style["min-height"], "h") ? this.style.height : this.style["min-height"];
 
 		this.style.width = `${atLeastMinWidth}px`;
 		this.style.height = `${atLeastMinHeight}px`;
@@ -670,7 +642,7 @@ class FloatingWindow extends HTMLElement {
 	 * Applies fixed floating style.
 	 * - Set BasicFloatingStyle
 	 * - Set position and size, adjusted for the theoretical anchor
-	 *   - If a size is defined while the size type is Auto, it will be changed to Viewport in order for the size to be applicable
+	 *   - If a size is defined while the size type is Auto, it will be changed to Relative in order for the size to be applicable
 	 *
 	 * @param {{x?: string, y?: string} | undefined} position New floating window position defined by css calc strings for both dimensions
 	 * @param {{x?: string, y?: string} | undefined} size New floating window size defined by css calc strings for both dimensions
@@ -703,7 +675,7 @@ class FloatingWindow extends HTMLElement {
 
 		if (size && this.dataset.sizeType == "Auto") {
 			// Auto must be changed for the defined size not to be removed
-			this.dataset.sizeType = "Viewport";
+			this.dataset.sizeType = "Relative";
 		} else {
 			// The size type is reapplied so the positioning is converted to the appropriate units
 			this.onFloatingDataChange_sizeType();
@@ -716,20 +688,20 @@ class FloatingWindow extends HTMLElement {
 	/**
 	 * Applies maximized floating style.
 	 * - Set BasicFloatingStyle
-	 * - Set used size unit to viewport
+	 * - Set used size unit to Relative
 	 * - Set position to top left
-	 * - Set size to 100% of viewport
+	 * - Set size to 100%
 	 */
 	applyMaximizedStyle() {
 		this.applyBasicFloatingStyle();
 
 		// prettier-ignore
 		this.applyFixedStyle(
-			{x: `calc(0vw)`, y: `calc(0vh)`},
-			{x: `calc(100vw)`, y: `calc(100vh)`}
+			{x: `calc(0%)`, y: `calc(0%)`},
+			{x: `calc(100%)`, y: `calc(100%)`}
 		);
 
-		this.dataset.sizeType = "Viewport";
+		this.dataset.sizeType = "Relative";
 	}
 
 	/**
@@ -743,8 +715,8 @@ class FloatingWindow extends HTMLElement {
 
 		// prettier-ignore
 		this.applyFixedStyle(
-			{x: `calc(0vw)`, y: `calc(0vh)`},
-			{x: `calc(0px)`, y: `calc(0px)`}
+			{x: `calc(0%)`, y: `calc(0%)`},
+			{x: `calc(0%)`, y: `calc(0%)`}
 		);
 
 		this.dataset.sizeType = "Fixed";
@@ -784,6 +756,7 @@ class FloatingWindow extends HTMLElement {
 		}
 
 		if (this.dataset.sizeType == "Auto" && (changeModifiers.width != "0*" || changeModifiers.height != "0*")) {
+			// For the resize to be applicable, the type cannot be auto. Fixed is the closest appropriate one
 			this.dataset.sizeType = "Fixed";
 
 			// Fixate size prematurely since the observer will run after this function
@@ -821,9 +794,7 @@ class FloatingWindow extends HTMLElement {
 	 * @param {MouseEvent} event Event caused by dragging the window with the mouse
 	 */
 	moveWindow(event) {
-		if (this.dataset.mouseDownY === undefined || this.dataset.mouseDownX === undefined ||
-			this.dataset.mouseDownTop === undefined || this.dataset.mouseDownLeft === undefined ||
-			this.dataset.mouseDownWidth === undefined || this.dataset.mouseDownHeight === undefined) {
+		if (this.dataset.mouseDownY === undefined || this.dataset.mouseDownX === undefined || this.dataset.mouseDownTop === undefined || this.dataset.mouseDownLeft === undefined || this.dataset.mouseDownWidth === undefined || this.dataset.mouseDownHeight === undefined) {
 			return;
 		}
 
@@ -831,14 +802,14 @@ class FloatingWindow extends HTMLElement {
 		const restored = this.restorePosition(true, false, true);
 		if (restored) {
 			// When the window is restored to a previous state, the "original position" saved in grabWindow() has to be adjusted to it
-			
+
 			// Css calc() would be nice, but "/" only works if the divisor is not a length unit, so at least part of the calculation cannot be solved with calc()
 			const windowBoundingRect = this.getBoundingClientRect();
-			const restoredWindowRelativeLeft = FloatingWindow.convertStyleCalcSizeToPx(this.dataset.mouseDownLeft) - parseInt(this.dataset.mouseDownX);
-			const restoredWindowRelativeLeftRatio = restoredWindowRelativeLeft / FloatingWindow.convertStyleCalcSizeToPx(this.dataset.mouseDownWidth);
+			const restoredWindowRelativeLeft = FloatingWindow.convertStyleCalcSizeToPx(this.dataset.mouseDownLeft, "w") - parseInt(this.dataset.mouseDownX);
+			const restoredWindowRelativeLeftRatio = restoredWindowRelativeLeft / FloatingWindow.convertStyleCalcSizeToPx(this.dataset.mouseDownWidth, "w");
 			const windowRelativePosition = restoredWindowRelativeLeftRatio * windowBoundingRect.width;
 			this.dataset.mouseDownLeft = `calc(${this.dataset.mouseDownX}px + ${windowRelativePosition}px)`;
-			
+
 			this.dataset.mouseDownWidth = this.style.width;
 			this.dataset.mouseDownHeight = this.style.height;
 		}
