@@ -867,7 +867,7 @@ class FloatingWindow extends HTMLElement {
 	 * Applies the general style on the floating window
 	 */
 	updateFloatingWindowStyle() {
-		this.contentStyle.textContent = FloatingWindow.chromeDefault + FloatingWindow.darkModeExtension;
+		this.contentStyle.textContent = FloatingWindow.preBuiltStyles.chromeDefault + FloatingWindow.preBuiltStyles.darkModeExtension;
 		this.windowStyle.textContent = `
 			* {
 				all: initial;
@@ -1103,109 +1103,110 @@ class FloatingWindow extends HTMLElement {
 		`;
 	}
 
-	static darkModeExtension = `
-		/* Generic */
-		#content {
-			background-color: #000000;
-			color: #ccc;
-		}
+	static preBuiltStyles = {
+		darkModeExtension: `
+			/* Generic */
+			#content {
+				background-color: #000000;
+				color: #ccc;
+			}
 
-		#content * {
-			color: #ccc;
-		}
+			#content * {
+				color: #ccc;
+			}
 
-		/* Separator */
-		hr {
-			display: block;
-			border: 1px inset;
-		}
+			/* Separator */
+			hr {
+				display: block;
+				border: 1px inset;
+			}
 
-		/* Button */
-		button {
-			background-color: #444;
-			color: #eee !important;
+			/* Button */
+			button {
+				background-color: #444;
+				color: #eee !important;
 
-			padding: 0.2em 0.4em 0.2em 0.4em;
-			border: none;
-			border-radius: 0.2em;
-			box-shadow: inset 0 0 0 2px #777;
+				padding: 0.2em 0.4em 0.2em 0.4em;
+				border: none;
+				border-radius: 0.2em;
+				box-shadow: inset 0 0 0 2px #777;
 
-			cursor: pointer;
-			user-select: none;
-		}
+				cursor: pointer;
+				user-select: none;
+			}
 
-		button:hover {
-			background-color: #555;
-		}
+			button:hover {
+				background-color: #555;
+			}
 
-		button:active {
-			background-color: #333;
-			
-			border: none;
-			border-radius: 0.2em;
-			box-shadow: inset 0 0 0 2px #777;
-		}
+			button:active {
+				background-color: #333;
+				
+				border: none;
+				border-radius: 0.2em;
+				box-shadow: inset 0 0 0 2px #777;
+			}
 
-		/* Linking */
-		:any-link {
-			cursor: pointer;
-			text-decoration: underline;
-		}
+			/* Linking */
+			:any-link {
+				cursor: pointer;
+				text-decoration: underline;
+			}
 
-		a:link {
-			color: LinkText!important;
-		}
+			a:link {
+				color: LinkText!important;
+			}
 
-		a:visited {
-			color: VisitedText!important;
-		}
+			a:visited {
+				color: VisitedText!important;
+			}
 
-		a:hover, a:focus {
-			text-decoration: none;
-		}
+			a:hover, a:focus {
+				text-decoration: none;
+			}
 
-		a:active {
-			color: ActiveText!important
-		}
-	`;
+			a:active {
+				color: ActiveText!important
+			}
+		`,
 
-	static lightModeExtension = `
-		/* Generic */
-		#content {
-			background-color: #fff;
-		}
+		lightModeExtension: `
+			/* Generic */
+			#content {
+				background-color: #fff;
+			}
 
-		/* Button */
-		button {
-			cursor: pointer;
-			user-select: none;
-		}
+			/* Button */
+			button {
+				cursor: pointer;
+				user-select: none;
+			}
 
-		/* Linking */
-		:any-link {
-			cursor: pointer;
-			text-decoration: underline;
-		}
+			/* Linking */
+			:any-link {
+				cursor: pointer;
+				text-decoration: underline;
+			}
 
-		a:link {
-			color: LinkText!important;
-		}
+			a:link {
+				color: LinkText!important;
+			}
 
-		a:visited {
-			color: VisitedText!important;
-		}
+			a:visited {
+				color: VisitedText!important;
+			}
 
-		a:hover, a:focus {
-			text-decoration: none;
-		}
+			a:hover, a:focus {
+				text-decoration: none;
+			}
 
-		a:active {
-			color: ActiveText!important
-		}
-	`;
+			a:active {
+				color: ActiveText!important
+			}
+		`,
 	
-	// The chrome default css
-	static chromeDefault = `
+		// The chrome default css
+		chromeDefault: `
 /*
 	* The default style sheet used to render HTML.
 	*
@@ -2142,7 +2143,8 @@ dialog::backdrop {
 }
 /* noscript is handled internally, as it depends on settings. */
 
-		`;
+		`
+	}
 }
 
 // Register FloatingWindow
