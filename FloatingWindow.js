@@ -539,8 +539,8 @@ class FloatingWindow extends HTMLElement {
 		let atLeastMinWidth = FloatingWindow.calcMinMax("max", this.style.width, this.style["min-width"], "w") ? this.style.width : this.style["min-width"];
 		let atLeastMinHeight = FloatingWindow.calcMinMax("max", this.style.height, this.style["min-height"], "h") ? this.style.height : this.style["min-height"];
 
-		this.style.width = `${atLeastMinWidth}px`;
-		this.style.height = `${atLeastMinHeight}px`;
+		this.style.width = atLeastMinWidth;
+		this.style.height = atLeastMinHeight;
 
 		// This makes sure that the positioning is defined using the right units
 		this.onFloatingDataChange_sizeType();
