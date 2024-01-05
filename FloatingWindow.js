@@ -1167,6 +1167,41 @@ class FloatingWindow extends HTMLElement {
 			color: cadetblue!important
 		}
 	`;
+
+	static lightModeExtension = `
+		/* Generic */
+		#content {
+			background-color: #fff;
+		}
+
+		/* Button */
+		button {
+			cursor: pointer;
+			user-select: none;
+		}
+
+		/* Linking */
+		:any-link {
+			cursor: pointer;
+			text-decoration: underline;
+		}
+
+		a:link {
+			color: LinkText!important;
+		}
+
+		a:visited {
+			color: VisitedText!important;
+		}
+
+		a:hover, a:focus {
+			text-decoration: none;
+		}
+
+		a:active {
+			color: ActiveText!important
+		}
+	`;
 	
 	// The chrome default css
 	static chromeDefault = `
