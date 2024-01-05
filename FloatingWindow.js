@@ -315,6 +315,8 @@ class FloatingWindow extends HTMLElement {
 
 		// Accessible parts
 		this.content = content;
+		this.contentStyle = contentStyle;
+		this.windowStyle = windowStyle;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
