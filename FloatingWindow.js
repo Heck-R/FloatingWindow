@@ -1147,24 +1147,25 @@ class FloatingWindow extends HTMLElement {
 		}
 
 		/* Linking */
-		:link, :visited {
-			text-decoration: underline
+		:any-link {
+			cursor: pointer;
+			text-decoration: underline;
 		}
 
 		a:link {
-			color: skyblue!important;
+			color: LinkText!important;
 		}
 
 		a:visited {
-			color: violet!important;
+			color: VisitedText!important;
 		}
 
 		a:hover, a:focus {
-			color: aqua!important;
+			text-decoration: none;
 		}
 
 		a:active {
-			color: cadetblue!important
+			color: ActiveText!important
 		}
 	`;
 
