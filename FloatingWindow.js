@@ -399,12 +399,12 @@ class FloatingWindow extends HTMLElement {
 	 */
 	static convertStyleCalcSizeToPx(originalCalc, dimension) {
 		let objectCalc = FloatingWindow.simplifyStyleCalcSize(originalCalc);
-		
+
 		const referenceDimensionSize = dimension == "w" ? document.documentElement.clientWidth : document.documentElement.clientHeight;
 
-		const percentPx = referenceDimensionSize * objectCalc["%"] / 100;
-		const vwPx = document.documentElement.clientWidth * objectCalc["vw"] / 100;
-		const vhPx = document.documentElement.clientHeight * objectCalc["vh"] / 100;
+		const percentPx = (referenceDimensionSize * objectCalc["%"]) / 100;
+		const vwPx = (document.documentElement.clientWidth * objectCalc["vw"]) / 100;
+		const vhPx = (document.documentElement.clientHeight * objectCalc["vh"]) / 100;
 		const px = objectCalc["px"];
 		return percentPx + vwPx + vhPx + px;
 	}
@@ -421,8 +421,8 @@ class FloatingWindow extends HTMLElement {
 		let objectCalc = FloatingWindow.simplifyStyleCalcSize(originalCalc);
 
 		const referenceDimensionSize = dimension == "w" ? document.documentElement.clientWidth : document.documentElement.clientHeight;
-		
-		const pxPercent = objectCalc["px"] * 100 / referenceDimensionSize;
+
+		const pxPercent = (objectCalc["px"] * 100) / referenceDimensionSize;
 		const vwPercent = objectCalc["vw"];
 		const vhPercent = objectCalc["vh"];
 		const percent = objectCalc["%"];
@@ -809,20 +809,23 @@ class FloatingWindow extends HTMLElement {
 			return;
 		}
 
-		// Manual handling of the window is not a special state from which restoration is desired, so the state is deleted after restored
-		const restored = this.restorePosition(true, false, true);
-		if (restored) {
-			// When the window is restored to a previous state, the "original position" saved in grabWindow() has to be adjusted to it
+		if (this.dataset.sizeType != "Auto") {
+			// Since in case of a "movement" only the size is adjusted, and "Auto" mode has no size to adjust, this is not applicable in that case
+			// Manual handling of the window is not a special state from which restoration is desired, so the state is deleted after restored
+			const restored = this.restorePosition(true, false, true);
+			if (restored) {
+				// When the window is restored to a previous state, the "original size" saved in grabWindow() has to be adjusted to it
 
-			// Css calc() would be nice, but "/" only works if the divisor is not a length unit, so at least part of the calculation cannot be solved with calc()
-			const windowBoundingRect = this.getBoundingClientRect();
-			const restoredWindowRelativeLeft = FloatingWindow.convertStyleCalcSizeToPx(this.dataset.mouseDownLeft, "w") - parseInt(this.dataset.mouseDownX);
-			const restoredWindowRelativeLeftRatio = restoredWindowRelativeLeft / FloatingWindow.convertStyleCalcSizeToPx(this.dataset.mouseDownWidth, "w");
-			const windowRelativePosition = restoredWindowRelativeLeftRatio * windowBoundingRect.width;
-			this.dataset.mouseDownLeft = `calc(${this.dataset.mouseDownX}px + ${windowRelativePosition}px)`;
+				// Css calc() would be nice, but "/" only works if the divisor is not a length unit, so at least part of the calculation cannot be solved with calc()
+				const windowBoundingRect = this.getBoundingClientRect();
+				const restoredWindowRelativeLeft = FloatingWindow.convertStyleCalcSizeToPx(this.dataset.mouseDownLeft, "w") - parseInt(this.dataset.mouseDownX);
+				const restoredWindowRelativeLeftRatio = restoredWindowRelativeLeft / FloatingWindow.convertStyleCalcSizeToPx(this.dataset.mouseDownWidth, "w");
+				const windowRelativePosition = restoredWindowRelativeLeftRatio * windowBoundingRect.width;
+				this.dataset.mouseDownLeft = `calc(${this.dataset.mouseDownX}px + ${windowRelativePosition}px)`;
 
-			this.dataset.mouseDownWidth = this.style.width;
-			this.dataset.mouseDownHeight = this.style.height;
+				this.dataset.mouseDownWidth = this.style.width;
+				this.dataset.mouseDownHeight = this.style.height;
+			}
 		}
 
 		// Position
@@ -1210,7 +1213,7 @@ class FloatingWindow extends HTMLElement {
 				color: ActiveText!important
 			}
 		`,
-	
+
 		// The chrome default css
 		chromeDefault: `
 /*
@@ -2149,8 +2152,8 @@ dialog::backdrop {
 }
 /* noscript is handled internally, as it depends on settings. */
 
-		`
-	}
+		`,
+	};
 }
 
 // Register FloatingWindow
