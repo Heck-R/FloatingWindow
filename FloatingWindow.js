@@ -314,7 +314,7 @@ class FloatingWindow extends HTMLElement {
 		this.addEventListener("mousedown", this.setSwitchablesOff.bind(this));
 
 		// Window resize handling
-		window.addEventListener("resize", () => {this.fixLessThatMinSize();});
+		window.addEventListener("resize", () => {this.fixLessThanMinSize();});
 
 		// Accessible parts
 		this.content = content;
@@ -532,7 +532,7 @@ class FloatingWindow extends HTMLElement {
 	 * Sets the size to the minimum when it is set to smaller (in order to avoid resizing problems later on)
 	 * It also implicitly reapplies the size type in order for the size to be in the appropriate unit
 	 */
-	fixLessThatMinSize() {
+	fixLessThanMinSize() {
 		// This makes sure that the calc() strings are simplified and thus usable below for dumb extraction of units
 		this.onFloatingDataChange_sizeType();
 
@@ -640,7 +640,7 @@ class FloatingWindow extends HTMLElement {
 			z-index: ${Number.MAX_SAFE_INTEGER};
 		`;
 
-		this.fixLessThatMinSize();
+		this.fixLessThanMinSize();
 	}
 
 	/**
@@ -687,7 +687,7 @@ class FloatingWindow extends HTMLElement {
 		}
 
 		// Fix and change size to appropriate type
-		this.fixLessThatMinSize();
+		this.fixLessThanMinSize();
 	}
 
 	/**
@@ -857,7 +857,7 @@ class FloatingWindow extends HTMLElement {
 		document.body.removeEventListener("mouseup", this.boundReleaseWindow);
 
 		// Fix and change size to appropriate type
-		this.fixLessThatMinSize();
+		this.fixLessThanMinSize();
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
