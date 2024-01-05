@@ -120,10 +120,13 @@ class FloatingWindow extends HTMLElement {
 		floatingWindow.id = "floatingWindow";
 
 		// Styles
+		// The style of the content itself. Since the window style removed all outside styling, this serves like a browser's default style
 		let contentStyle = document.createElement("style");
 		contentStyle.id = "contentStyle";
 		contentStyle.setAttribute("scoped", "");
 
+		// The style of the window itself, including the navigation bar and resizers at the edges
+		// For a consistent look across all browsers and pages, it starts by removing all styling
 		let windowStyle = document.createElement("style");
 		windowStyle.id = "windowStyle";
 		windowStyle.setAttribute("scoped", "");
@@ -864,13 +867,7 @@ class FloatingWindow extends HTMLElement {
 	 * Applies the general style on the floating window
 	 */
 	updateFloatingWindowStyle() {
-		// The style of the window itself, including the navigation bar and resizers at the edges
-		// For a consistent look across all browsers and pages, it starts by removing all styling
-		let windowStyle = this.shadowRoot.getElementById("windowStyle");
-		// The style of the content itself. Since the window style removed all outside styling, this serves like a browser's default style
-		let contentStyle = this.shadowRoot.getElementById("contentStyle");
-
-		windowStyle.textContent = `
+		this.windowStyle.textContent = `
 			* {
 				all: initial;
 			}
@@ -2110,7 +2107,7 @@ dialog::backdrop {
 
 		`;
 
-		contentStyle.textContent = chromeDefault + customExtension;
+		this.contentStyle.textContent = chromeDefault + customExtension;
 	}
 }
 
