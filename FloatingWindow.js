@@ -2,14 +2,20 @@
  * A floating window html element with the following capabilities:
  * - Can be dragged around by grabbing it by the title bar
  * - Can be resized by dragging the sides
- * - Can be minimized / Maxed
+ * - Can be minimized / Maximized
  * - Size modes can be applied
  *   - Auto: Resized based on content, and keeps position
  *   - Fixed: Preserves size and position
- *   - Relative: Resizes and repositions in a way to always occupy the same relative location
- * - Ignores page css
- *
- * Content can be added to the FloatingWindow.content element
+ *   - Relative: Resizes and repositions in a way to always occupy the same relative location even if the browser window is resized
+ * - Quick positioning
+ *   - The window can be aligned to the sides or corners
+ * - Custom style
+ *   - Ignores page css for consistent look
+ *   - Custom styles can be applied using the 'contentStyle' property
+ *   - Prebuilt styles can be found in the 'preBuiltStyles' static property
+ *     - Those with "Extension" in their name should be appended to very generic styles, such as browsers' default styles
+ *   - The whole window can also be styled using the 'windowStyle' property
+ * - Content can be added to the element referenced by the 'content' property
  */
 class FloatingWindow extends HTMLElement {
 	////////////////////////////////////////////////////////////////////////////////////////////////
