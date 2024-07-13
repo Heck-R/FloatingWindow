@@ -250,13 +250,13 @@ class FloatingWindow extends HTMLElement {
 					if (event.shiftKey) {
 						this.applyFixedStyle(
 							{x: `calc(${colNum * 50}%)`, y: `calc(${rowNum * 50}%)`},
-							undefined,
+							{x: `calc(${colNum % 2 == 0 ? 50 : 100}%)`, y: `calc(${rowNum % 2 == 0 ? 50 : 100}%)`},
 							{ x: colNum * 50, y: rowNum * 50 }
 						);
 					} else {
 						this.applyFixedStyle(
 							{x: `calc(${colNum * 50}%)`, y: `calc(${rowNum * 50}%)`},
-							{x: `calc(${colNum % 2 == 0 ? 50 : 100}%)`, y: `calc(${rowNum % 2 == 0 ? 50 : 100}%)`},
+							undefined,
 							{ x: colNum * 50, y: rowNum * 50 }
 						);
 					}
