@@ -822,6 +822,12 @@ class FloatingWindow extends HTMLElement {
 		this.dataset.changeModifierWidth = changeModifiers.width;
 		this.dataset.changeModifierHeight = changeModifiers.height;
 
+		// Actively refreshed movement vector sum
+		// The iframe is moving based on the mouse, and thus changing the underlying coordinate system in which the mouse's position is measured gets falsified
+		// To avoid jittering caused by this, the offset the mouse just moved in the current event is added to the last known position instead if being calculated from the mousedown and offset only
+		this.dataset.mouseMovementSumX = "0";
+		this.dataset.mouseMovementSumY = "0";
+
 		// Apply invisible overlay to block unwanted selection on the page
 		//TODO: Is this still needed?
 		this.iframe.contentDocument.getElementById("sizerSelectionBlockerOverlay").classList.remove("hidden");
@@ -838,7 +844,20 @@ class FloatingWindow extends HTMLElement {
 	 * @param {MouseEvent} event Event caused by dragging the window with the mouse
 	 */
 	moveWindow(event) {
-		if (this.dataset.mouseDownY === undefined || this.dataset.mouseDownX === undefined || this.dataset.mouseDownTop === undefined || this.dataset.mouseDownLeft === undefined || this.dataset.mouseDownWidth === undefined || this.dataset.mouseDownHeight === undefined) {
+		if (
+			this.dataset.mouseDownY === undefined ||
+			this.dataset.mouseDownX === undefined ||
+			this.dataset.mouseDownTop === undefined ||
+			this.dataset.mouseDownLeft === undefined ||
+			this.dataset.mouseDownWidth === undefined ||
+			this.dataset.mouseDownHeight === undefined ||
+			this.dataset.mouseMovementSumX === undefined ||
+			this.dataset.mouseMovementSumY === undefined ||
+			this.dataset.changeModifierTop === undefined ||
+			this.dataset.changeModifierLeft === undefined ||
+			this.dataset.changeModifierWidth === undefined ||
+			this.dataset.changeModifierHeight === undefined
+		) {
 			throw new Error("The movement related preset value was undefined, but that should not have been possible as it's supposed to be initialized when the window is grabbed");
 		}
 
@@ -861,15 +880,20 @@ class FloatingWindow extends HTMLElement {
 			}
 		}
 
+		const mouseMovementComparedToGrabX = event.clientX - parseInt(this.dataset.mouseDownX);
+		const mouseMovementComparedToGrabY = event.clientY - parseInt(this.dataset.mouseDownY);
+		this.dataset.mouseMovementSumX = `${parseInt(this.dataset.mouseMovementSumX) + mouseMovementComparedToGrabX}`;
+		this.dataset.mouseMovementSumY = `${parseInt(this.dataset.mouseMovementSumY) + mouseMovementComparedToGrabY}`;
+
 		// Position
-		// The iframe is moving based on the mouse, and thus changing the underlying coordinate system in which the mouse's position is measured gets falsified
-		// To avoid jittering caused by this, the offset the mouse just moved in the current event is added to the last known position instead if being calculated from the mousedown and offset only
-		this.style.top = `calc(${this.style.top} + (${this.dataset.changeModifierTop} ${event.clientY - parseInt(this.dataset.mouseDownY)}px))`;
-		this.style.left = `calc(${this.style.left} + (${this.dataset.changeModifierLeft} ${event.clientX - parseInt(this.dataset.mouseDownX)}px))`;
+		//TODO: Fix positioning and min width in current combination pushing the window (top & left resizers)
+		this.style.top = `calc(${this.dataset.mouseDownTop} + (${this.dataset.changeModifierTop} ${this.dataset.mouseMovementSumY}px))`;
+		this.style.left = `calc(${this.dataset.mouseDownLeft} + (${this.dataset.changeModifierLeft} ${this.dataset.mouseMovementSumX}px))`;
 
 		// Size
-		this.style.width = `calc(${this.dataset.mouseDownWidth} + (${this.dataset.changeModifierWidth} ${event.clientX - parseInt(this.dataset.mouseDownX)}px))`;
-		this.style.height = `calc(${this.dataset.mouseDownHeight} + (${this.dataset.changeModifierHeight} ${event.clientY - parseInt(this.dataset.mouseDownY)}px))`;
+		//TODO: Make change modifiers to be numbers instead of magic calc string parts
+		this.style.width = `calc(${this.dataset.mouseDownWidth} + (${this.dataset.changeModifierWidth} ${this.dataset.changeModifierLeft[0] != "0" ? this.dataset.mouseMovementSumX : mouseMovementComparedToGrabX}px))`;
+		this.style.height = `calc(${this.dataset.mouseDownHeight} + (${this.dataset.changeModifierHeight} ${this.dataset.changeModifierTop[0] != "0" ? this.dataset.mouseMovementSumY : mouseMovementComparedToGrabY}px))`;
 	}
 
 	/**
