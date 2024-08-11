@@ -65,7 +65,8 @@ class FloatingWindow extends HTMLElement {
 		// // Shadow root for better separation from the page
 		// let shadowRoot = this.attachShadow({ mode: "open" });
 
-		iframe.onload = () => {
+		//TODO: Fix load and onload not working on chrome
+		iframe.addEventListener("load", () => {
 			if (!iframe.contentDocument || !iframe.contentDocument.body) {
 				throw "iframe is shit";
 			}
@@ -346,7 +347,7 @@ class FloatingWindow extends HTMLElement {
 			this.applyBasicFloatingStyle();
 
 			this.initContent(content);
-		};
+		});
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -822,11 +823,13 @@ class FloatingWindow extends HTMLElement {
 		this.dataset.changeModifierHeight = changeModifiers.height;
 
 		// Apply invisible overlay to block unwanted selection on the page
-		this.iframe.contentDocument.body.getElementById("sizerSelectionBlockerOverlay").classList.remove("hidden");
+		//TODO: Is this still needed?
+		this.iframe.contentDocument.getElementById("sizerSelectionBlockerOverlay").classList.remove("hidden");
 
 		// Add move and release listeners
-		document.body.addEventListener("mousemove", this.boundMoveWindow);
-		document.body.addEventListener("mouseup", this.boundReleaseWindow);
+		// Adding the event to the document somehow magically triggers even when going outside of the iframe, going out to the browser toolbar or outside the browser window
+		this.iframe.contentDocument.addEventListener("mousemove", this.boundMoveWindow);
+		this.iframe.contentDocument.addEventListener("mouseup", this.boundReleaseWindow);
 	}
 
 	/**
@@ -836,7 +839,7 @@ class FloatingWindow extends HTMLElement {
 	 */
 	moveWindow(event) {
 		if (this.dataset.mouseDownY === undefined || this.dataset.mouseDownX === undefined || this.dataset.mouseDownTop === undefined || this.dataset.mouseDownLeft === undefined || this.dataset.mouseDownWidth === undefined || this.dataset.mouseDownHeight === undefined) {
-			return;
+			throw new Error("The movement related preset value was undefined, but that should not have been possible as it's supposed to be initialized when the window is grabbed");
 		}
 
 		if (this.dataset.sizeType != "Auto") {
@@ -859,8 +862,10 @@ class FloatingWindow extends HTMLElement {
 		}
 
 		// Position
-		this.style.top = `calc(${this.dataset.mouseDownTop} + (${this.dataset.changeModifierTop} ${event.clientY - parseInt(this.dataset.mouseDownY)}px))`;
-		this.style.left = `calc(${this.dataset.mouseDownLeft} + (${this.dataset.changeModifierLeft} ${event.clientX - parseInt(this.dataset.mouseDownX)}px))`;
+		// The iframe is moving based on the mouse, and thus changing the underlying coordinate system in which the mouse's position is measured gets falsified
+		// To avoid jittering caused by this, the offset the mouse just moved in the current event is added to the last known position instead if being calculated from the mousedown and offset only
+		this.style.top = `calc(${this.style.top} + (${this.dataset.changeModifierTop} ${event.clientY - parseInt(this.dataset.mouseDownY)}px))`;
+		this.style.left = `calc(${this.style.left} + (${this.dataset.changeModifierLeft} ${event.clientX - parseInt(this.dataset.mouseDownX)}px))`;
 
 		// Size
 		this.style.width = `calc(${this.dataset.mouseDownWidth} + (${this.dataset.changeModifierWidth} ${event.clientX - parseInt(this.dataset.mouseDownX)}px))`;
@@ -889,11 +894,11 @@ class FloatingWindow extends HTMLElement {
 		delete this.dataset.changeModifierHeight;
 
 		// Remove invisible overlay to block unwanted selection on the page
-		this.iframe.contentDocument.body.getElementById("sizerSelectionBlockerOverlay").classList.add("hidden");
+		this.iframe.contentDocument.getElementById("sizerSelectionBlockerOverlay").classList.add("hidden");
 
 		// Remove move and release listeners
-		document.body.removeEventListener("mousemove", this.boundMoveWindow);
-		document.body.removeEventListener("mouseup", this.boundReleaseWindow);
+		this.iframe.contentDocument.removeEventListener("mousemove", this.boundMoveWindow);
+		this.iframe.contentDocument.removeEventListener("mouseup", this.boundReleaseWindow);
 
 		// Fix and change size to appropriate type
 		this.fixLessThanMinSize();
