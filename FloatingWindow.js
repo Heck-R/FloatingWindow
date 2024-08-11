@@ -1,3 +1,6 @@
+//TODO: clean up
+//TODO: Fix size modes
+//TODO: Fix top bar sizing  (currently based on the iframe size, but should be the original page size, as that is the one representing the user working environment)
 /**
  * A floating window html element with the following capabilities:
  * - Can be dragged around by grabbing it by the title bar
