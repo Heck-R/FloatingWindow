@@ -1,5 +1,7 @@
 //TODO: clean up
 //TODO: Fix size modes
+//TODO: Fix grab position being on window when being restored from special style
+//TODO: Move window back to interact-able part of the window to avoid it being lost (maybe a navigation button amount, so it is possible to grab or maximize)
 //TODO: Fix top bar sizing  (currently based on the iframe size, but should be the original page size, as that is the one representing the user working environment)
 /**
  * A floating window html element with the following capabilities:
@@ -938,17 +940,17 @@ class FloatingWindow extends HTMLElement {
 	 * Applies the general style on the floating window
 	 */
 	updateFloatingWindowStyle() {
-		this.contentStyle.textContent = FloatingWindow.preBuiltStyles.darkModeExtension;
+		this.contentStyle.textContent = FloatingWindow.preBuiltStyles.lightModeExtension;
 		this.windowStyle.textContent = `
-			[contenteditable] {
+			[contenteditable]:not(#content *) {
 				outline: 0px solid transparent;
 			}
 
-			.hidden {
+			.hidden:not(#content *) {
 				display: none!important;
 			}
 
-			#windowSizerContainer {
+			#windowSizerContainer:not(#content *) {
 				position: absolute;
 				top: 0;
 				left: 0;
@@ -959,7 +961,7 @@ class FloatingWindow extends HTMLElement {
 				z-index: 0;
 			}
 
-			#floatingWindow {
+			#floatingWindow:not(#content *) {
 				margin: ${this.sizerThickness};
 				position: absolute;
 				width: calc(100% - 2*${this.sizerThickness});
@@ -972,7 +974,7 @@ class FloatingWindow extends HTMLElement {
 				z-index: 1;
 			}
 
-			#navigationBar {
+			#navigationBar:not(#content *) {
 				display: block;
 
 				width: 100%;
@@ -986,7 +988,7 @@ class FloatingWindow extends HTMLElement {
 			}
 
 
-			#positionPanel {
+			#positionPanel:not(#content *) {
 				display: flex;
 
 				height: 100%;
@@ -996,16 +998,18 @@ class FloatingWindow extends HTMLElement {
 				float: right;
 			}
 
-			#positionPanel, #positionPanel > .positionSlot:last-child, #positionPanel > .positionSlot:last-child > .positionButton {
+			#positionPanel:not(#content *),
+			#positionPanel > .positionSlot:last-child:not(#content *),
+			#positionPanel > .positionSlot:last-child > .positionButton:not(#content *) {
 				border-radius: 0 ${this.windowBorderRadius} 0 0;
 			}
 
-			.positionSlot {
+			.positionSlot:not(#content *) {
 				height: 100%;
 				width: 20%;
 			}
 
-			.positionButton {
+			.positionButton:not(#content *) {
 				display: flex;
 
 				height: 100%;
@@ -1022,43 +1026,45 @@ class FloatingWindow extends HTMLElement {
 				color: white;
 			}
 
-			.positionButton:hover {
+			.positionButton:hover:not(#content *) {
 				filter: brightness(130%);
 			}
 
-			#movableButton:hover {
+			#movableButton:hover:not(#content *) {
 				filter: unset;
 				cursor: unset;
 			}
 
-			#sizeTypeButton, .sizeTypeButton {
+			#sizeTypeButton:not(#content *),
+			.sizeTypeButton:not(#content *) {
 				background-color: #707;
 			}
 
-			#minimizeButton {
+			#minimizeButton:not(#content *) {
 				background-color: #777;
 			}
 
-			#fixedButton, .fixedButton {
+			#fixedButton:not(#content *),
+			.fixedButton:not(#content *) {
 				background-color: #07b;
 			}
 
-			#maximizeButton {
+			#maximizeButton:not(#content *) {
 				background-color: #070;
 			}
 
-			#closeButton {
+			#closeButton:not(#content *) {
 				background-color: #a00;
 			}
 
-			.switchable {
+			.switchable:not(#content *) {
 				position: absolute;
 
 				min-width: ${this.minFixedButtonSize};
 				min-height: ${this.minFixedButtonSize};
 			}
 
-			#sizeTypeButtonPanel {
+			#sizeTypeButtonPanel:not(#content *) {
 				display: grid;
 
 				grid-template-columns: 1fr;
@@ -1066,7 +1072,7 @@ class FloatingWindow extends HTMLElement {
 
 			}
 
-			#fixedButtonGrid {
+			#fixedButtonGrid:not(#content *) {
 				display: grid;
 
 				grid-template-columns: 1fr 1fr 1fr;
@@ -1075,7 +1081,7 @@ class FloatingWindow extends HTMLElement {
 			}
 
 
-			#sizerSelectionBlockerOverlay {
+			#sizerSelectionBlockerOverlay:not(#content *) {
 				position: fixed;
 
 				top: 0;
@@ -1085,7 +1091,7 @@ class FloatingWindow extends HTMLElement {
 				height: 100vh;
 			}
 
-			.sizer {
+			.sizer:not(#content *) {
 				position: absolute;
 
 				user-select: none;
@@ -1096,12 +1102,13 @@ class FloatingWindow extends HTMLElement {
 				-webkit-user-drag: none;
 			}
 
-			.sizer:hover {
+			.sizer:hover:not(#content *) {
 				background-color: #000;
 				opacity: 0.2;
 			}
 
-			.sizerTop, .sizerBottom {
+			.sizerTop:not(#content *),
+			.sizerBottom:not(#content *) {
 				left: 50%;
 				transform: translate(-50%, 0);
 
@@ -1111,7 +1118,8 @@ class FloatingWindow extends HTMLElement {
 				cursor: ns-resize;
 			}
 
-			.sizerLeft, .sizerRight {
+			.sizerLeft:not(#content *),
+			.sizerRight:not(#content *) {
 				top: 50%;
 				transform: translate(0, -50%);
 
@@ -1121,15 +1129,17 @@ class FloatingWindow extends HTMLElement {
 				cursor: ew-resize;
 			}
 
-			.sizerTop.sizerLeft, .sizerBottom.sizerRight {
+			.sizerTop.sizerLeft:not(#content *),
+			.sizerBottom.sizerRight:not(#content *) {
 				cursor: nwse-resize;
 			}
 
-			.sizerTop.sizerRight, .sizerBottom.sizerLeft {
+			.sizerTop.sizerRight:not(#content *),
+			.sizerBottom.sizerLeft:not(#content *) {
 				cursor: nesw-resize;
 			}
 
-			.sizerCorner {
+			.sizerCorner:not(#content *) {
 				width: calc(${this.windowBorderRadius} + ${this.sizerThickness});
 				height: calc(${this.windowBorderRadius} + ${this.sizerThickness});
 
@@ -1141,25 +1151,25 @@ class FloatingWindow extends HTMLElement {
 				transform: unset;
 			}
 
-			.sizerTop {
+			.sizerTop:not(#content *) {
 				top: 0;
 			}
 
-			.sizerBottom {
+			.sizerBottom:not(#content *) {
 				bottom: 0;
 			}
 
-			.sizerLeft {
+			.sizerLeft:not(#content *) {
 				left: 0;
 			}
 
-			.sizerRight {
+			.sizerRight:not(#content *) {
 				right: 0;
 			}
 
 
 
-			#content {
+			#content:not(#content *) {
 				display: block;
 
 				width: 100%;
@@ -1176,6 +1186,11 @@ class FloatingWindow extends HTMLElement {
 			#content {
 				background-color: #000000;
 				color: #ccc;
+
+				border-style: solid;
+				border-color: #444;
+				border-width: 0px 1px 1px 1px;
+				box-sizing: border-box;
 			}
 
 			#content * {
@@ -1183,13 +1198,13 @@ class FloatingWindow extends HTMLElement {
 			}
 
 			/* Separator */
-			hr {
+			#content hr {
 				display: block;
 				border: 1px inset;
 			}
 
 			/* Button */
-			button {
+			#content button {
 				background-color: #444;
 				color: #eee !important;
 
@@ -1202,11 +1217,11 @@ class FloatingWindow extends HTMLElement {
 				user-select: none;
 			}
 
-			button:hover {
+			#content button:hover {
 				background-color: #555;
 			}
 
-			button:active {
+			#content button:active {
 				background-color: #333;
 				
 				border: none;
@@ -1215,24 +1230,25 @@ class FloatingWindow extends HTMLElement {
 			}
 
 			/* Linking */
-			:any-link {
+			#content :any-link {
 				cursor: pointer;
 				text-decoration: underline;
 			}
 
-			a:link {
+			#content a:link {
 				color: LinkText!important;
 			}
 
-			a:visited {
+			#content a:visited {
 				color: VisitedText!important;
 			}
 
-			a:hover, a:focus {
+			#content a:hover,
+			#content a:focus {
 				text-decoration: none;
 			}
 
-			a:active {
+			#content a:active {
 				color: ActiveText!important
 			}
 		`,
@@ -1241,33 +1257,38 @@ class FloatingWindow extends HTMLElement {
 			/* Generic */
 			#content {
 				background-color: #fff;
+
+				border-style: solid;
+				border-color: #444;
+				border-width: 0px 1px 1px 1px;
+				box-sizing: border-box;
 			}
 
 			/* Button */
-			button {
+			#content button {
 				cursor: pointer;
 				user-select: none;
 			}
 
 			/* Linking */
-			:any-link {
+			#content :any-link {
 				cursor: pointer;
 				text-decoration: underline;
 			}
 
-			a:link {
+			#content a:link {
 				color: LinkText!important;
 			}
 
-			a:visited {
+			#content a:visited {
 				color: VisitedText!important;
 			}
 
-			a:hover, a:focus {
+			#content a:hover, a:focus {
 				text-decoration: none;
 			}
 
-			a:active {
+			#content a:active {
 				color: ActiveText!important
 			}
 		`,
