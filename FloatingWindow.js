@@ -1211,7 +1211,7 @@ class FloatingWindow extends HTMLElement {
 				padding: 0.2em 0.4em 0.2em 0.4em;
 				border: none;
 				border-radius: 0.2em;
-				box-shadow: inset 0 0 0 2px #777;
+				box-shadow: inset 0 0 0 1px #777;
 
 				cursor: pointer;
 				user-select: none;
