@@ -17,11 +17,12 @@
  *   - The window can be aligned to the sides or corners
  * - Custom style
  *   - Ignores page css for consistent look
- *   - Custom styles can be applied using the 'contentStyle' property
- *   - Prebuilt styles can be found in the 'preBuiltStyles' static property
- *     - Those with "Extension" in their name should be appended to very generic styles, such as browsers' default styles
- *   - The whole window can also be styled using the 'windowStyle' property
- * - Content can be added to the element referenced by the 'content' property
+ *   - Custom styles can be applied using the 'contentStyle' property (style element)
+ *     - As the content is the user's scope, this can be completely overwritten without unexpected consequences
+ *     - Prebuilt styles can be found in the 'preBuiltStyles' static property
+ *   - The whole window can also be styled using the 'windowStyle' property (style element)
+ *     - This style makes the window navigation look as it does, so completely overwriting it is not recommended
+ * - Content can be added to the element referenced by the 'content' property (element)
  */
 class FloatingWindow extends HTMLElement {
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -941,7 +942,7 @@ class FloatingWindow extends HTMLElement {
 	 * Applies the general style on the floating window
 	 */
 	updateFloatingWindowStyle() {
-		this.contentStyle.textContent = FloatingWindow.preBuiltStyles.darkModeExtension;
+		this.contentStyle.textContent = FloatingWindow.preBuiltStyles.darkMode;
 		this.windowStyle.textContent = `
 			[contenteditable]:not(#content *) {
 				outline: 0px solid transparent;
@@ -1182,7 +1183,7 @@ class FloatingWindow extends HTMLElement {
 	}
 
 	static preBuiltStyles = {
-		darkModeExtension: `
+		darkMode: `
 			/* Generic */
 			#content {
 				background-color: #000000;
@@ -1254,7 +1255,7 @@ class FloatingWindow extends HTMLElement {
 			}
 		`,
 
-		lightModeExtension: `
+		lightMode: `
 			/* Generic */
 			#content {
 				background-color: #fff;
