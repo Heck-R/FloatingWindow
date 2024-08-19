@@ -940,7 +940,7 @@ class FloatingWindow extends HTMLElement {
 	 * Applies the general style on the floating window
 	 */
 	updateFloatingWindowStyle() {
-		this.contentStyle.textContent = FloatingWindow.preBuiltStyles.lightModeExtension;
+		this.contentStyle.textContent = FloatingWindow.preBuiltStyles.darkModeExtension;
 		this.windowStyle.textContent = `
 			[contenteditable]:not(#content *) {
 				outline: 0px solid transparent;
