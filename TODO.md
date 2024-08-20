@@ -17,10 +17,10 @@
 - Fix grab position being on window when being restored from special style
 - Fix iframe load and onload not working on chrome
 - Fix positioning and min width in current combination pushing the window (top & left resizers)
+- Auto mode
 
 ## Maybe
 
-- Auto mode
 - Fix top bar sizing  (currently based on the iframe size, but should be the original page size, as that is the one representing the user working environment)
 
 # Others
