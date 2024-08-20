@@ -1,6 +1,7 @@
 //TODO: clean up
 //TODO: Fix size modes
 //TODO: Fix grab position being on window when being restored from special style
+//TODO: Add experimental sidebar mode, where the window acts as a proper sidebar, not above the page content, but taking space from it (acceptable if buggy)
 //TODO: Provide awaitable interface for the content being ready
 //TODO: Move window back to interact-able part of the window to avoid it being lost (maybe a navigation button amount, so it is possible to grab or maximize)
 //TODO: Fix top bar sizing  (currently based on the iframe size, but should be the original page size, as that is the one representing the user working environment)
