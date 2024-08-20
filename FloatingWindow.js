@@ -229,7 +229,7 @@ class FloatingWindow extends HTMLElement {
 			sizeTypeButtonPanel.classList.add("switchable");
 			sizeTypeButtonPanel.classList.add("hidden");
 
-			let sizeTypes = ["Relative", "Fixed", "Auto"];
+			let sizeTypes = ["Relative", "Fixed"]; // "Auto" is removed until it's fixed
 			for (let sizeType of sizeTypes) {
 				let sizeTypeButton = createPositionButton("sizeType" + sizeType, sizeType, () => {
 					this.dataset.sizeType = sizeType;
@@ -340,9 +340,9 @@ class FloatingWindow extends HTMLElement {
 
 			// return;
 			// Observed variables
-			this.dataset.sizeType = "Fixed";
 			if (this.dataset.sizeType == undefined) {
-				this.dataset.sizeType = "Auto";
+				this.dataset.sizeType = "Fixed";
+				// this.dataset.sizeType = "Auto";
 			}
 
 			// Minimal style
