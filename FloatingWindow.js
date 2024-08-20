@@ -1,10 +1,3 @@
-//TODO: clean up
-//TODO: Fix size modes
-//TODO: Fix grab position being on window when being restored from special style
-//TODO: Add experimental sidebar mode, where the window acts as a proper sidebar, not above the page content, but taking space from it (acceptable if buggy)
-//TODO: Provide awaitable interface for the content being ready
-//TODO: Move window back to interact-able part of the window to avoid it being lost (maybe a navigation button amount, so it is possible to grab or maximize)
-//TODO: Fix top bar sizing  (currently based on the iframe size, but should be the original page size, as that is the one representing the user working environment)
 /**
  * A floating window html element with the following capabilities:
  * - Can be dragged around by grabbing it by the title bar
@@ -51,7 +44,6 @@ class FloatingWindow extends HTMLElement {
 		this.minWindowWidth = "calc(90px + 13.5vh)"; // 9 * navigationBarHeight - Why? Because that ratio looks nice
 		this.minFixedButtonSize = "calc(45px + 6.75vh)"; // 3/6 * minWindowWidth - Why? Because there are 6 button slots in the nav bar and this spans 3 like this
 
-		//TODO: Check and consider using attributeChangedCallback
 		// Create dataset variable observers (initiated in connectedCallback())
 		let observer = new MutationObserver(mutations => {
 			mutations.forEach(mutation => {
@@ -73,7 +65,6 @@ class FloatingWindow extends HTMLElement {
 		// // Shadow root for better separation from the page
 		// let shadowRoot = this.attachShadow({ mode: "open" });
 
-		//TODO: Fix load and onload not working on chrome
 		iframe.addEventListener("load", () => {
 			if (!iframe.contentDocument || !iframe.contentDocument.body) {
 				throw "iframe is shit";
@@ -837,7 +828,6 @@ class FloatingWindow extends HTMLElement {
 		this.dataset.mouseMovementSumY = "0";
 
 		// Apply invisible overlay to block unwanted selection on the page
-		//TODO: Is this still needed?
 		this.iframe.contentDocument.getElementById("sizerSelectionBlockerOverlay").classList.remove("hidden");
 
 		// Add move and release listeners
@@ -894,12 +884,10 @@ class FloatingWindow extends HTMLElement {
 		this.dataset.mouseMovementSumY = `${parseInt(this.dataset.mouseMovementSumY) + mouseMovementComparedToGrabY}`;
 
 		// Position
-		//TODO: Fix positioning and min width in current combination pushing the window (top & left resizers)
 		this.style.top = `calc(${this.dataset.mouseDownTop} + (${this.dataset.changeModifierTop} ${this.dataset.mouseMovementSumY}px))`;
 		this.style.left = `calc(${this.dataset.mouseDownLeft} + (${this.dataset.changeModifierLeft} ${this.dataset.mouseMovementSumX}px))`;
 
 		// Size
-		//TODO: Make change modifiers to be numbers instead of magic calc string parts
 		this.style.width = `calc(${this.dataset.mouseDownWidth} + (${this.dataset.changeModifierWidth} ${this.dataset.changeModifierLeft[0] != "0" ? this.dataset.mouseMovementSumX : mouseMovementComparedToGrabX}px))`;
 		this.style.height = `calc(${this.dataset.mouseDownHeight} + (${this.dataset.changeModifierHeight} ${this.dataset.changeModifierTop[0] != "0" ? this.dataset.mouseMovementSumY : mouseMovementComparedToGrabY}px))`;
 	}
