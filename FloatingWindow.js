@@ -878,18 +878,20 @@ class FloatingWindow extends HTMLElement {
 
 				// Css calc() would be nice, but "/" only works if the divisor is not a length unit, so at least part of the calculation cannot be solved with calc()
 				const windowBoundingRect = this.getBoundingClientRect();
-				const restoredWindowRelativeLeft = FloatingWindow.convertStyleCalcSizeToPx(this.dataset.mouseDownLeft, "w") - parseInt(this.dataset.mouseDownX);
-				const restoredWindowRelativeLeftRatio = restoredWindowRelativeLeft / FloatingWindow.convertStyleCalcSizeToPx(this.dataset.mouseDownWidth, "w");
-				const windowRelativePosition = restoredWindowRelativeLeftRatio * windowBoundingRect.width;
-				this.dataset.mouseDownLeft = `calc(${this.dataset.mouseDownX}px + ${windowRelativePosition}px)`;
+				const originalWindowRelativeLeft = parseInt(this.dataset.mouseDownX);
+				const originalWindowRelativeLeftRatio = originalWindowRelativeLeft / parseInt(this.dataset.mouseDownWidth);
+				const restoredWindowRelativeLeft = originalWindowRelativeLeftRatio * windowBoundingRect.width;
+				const leftAdjustment = originalWindowRelativeLeft - restoredWindowRelativeLeft;
+				const adjustedLeft = parseInt(this.dataset.mouseDownLeft) + leftAdjustment;
 
-				this.dataset.mouseDownWidth = this.style.width;
-				this.dataset.mouseDownHeight = this.style.height;
+				this.dataset.mouseDownLeft = adjustedLeft.toString();
+				this.dataset.mouseDownX = (parseInt(this.dataset.mouseDownX) - leftAdjustment).toString();
+
+				this.dataset.mouseDownWidth = windowBoundingRect.width.toString();
+				this.dataset.mouseDownHeight = windowBoundingRect.height.toString();
 			}
 		}
 
-		const mouseMovementComparedToGrabX = event.clientX - parseInt(this.dataset.mouseDownX);
-		const mouseMovementComparedToGrabY = event.clientY - parseInt(this.dataset.mouseDownY);
 		this.dataset.mouseMovementSumX = `${parseInt(this.dataset.mouseMovementSumX) + mouseMovementComparedToGrabX}`;
 		this.dataset.mouseMovementSumY = `${parseInt(this.dataset.mouseMovementSumY) + mouseMovementComparedToGrabY}`;
 
