@@ -14,7 +14,6 @@
 
 ## Must
 
-- Fix grab position being on window when being restored from special style
 - Fix iframe load and onload not working on chrome
 - Fix positioning and min width in current combination pushing the window (top & left resizers)
 - Auto mode
@@ -28,6 +27,7 @@
 ## Must
 
 - Is "sizerSelectionBlockerOverlay" still needed with the iframe?
+- Avoid infinite string-int conversion (data properties may just not be ideal)
 - Clean up
   - Handle all types properly (~ linter warnings)
   - Remove obsolete stuff
