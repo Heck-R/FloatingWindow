@@ -316,7 +316,7 @@ class FloatingWindow extends HTMLElement {
 			/**/ windowSizerContainer.appendChild(sizerBottomRight);
 
 			// Window listeners
-			this.addEventListener("mousedown", this.setSwitchablesOff.bind(this));
+			iframe.contentDocument.addEventListener("mousedown", this.setSwitchablesOff.bind(this));
 
 			// Window resize handling
 			window.addEventListener("resize", () => {
