@@ -87,42 +87,42 @@ class FloatingWindow extends HTMLElement {
 			// Sizer - Top
 			let sizerTop = document.createElement("div");
 			sizerTop.classList.add("sizer", "sizerTop");
-			sizerTop.addEventListener("mousedown", this.grabWindow.bind(this, { top: "1*", height: "-1*" }));
+			sizerTop.addEventListener("mousedown", this.grabWindow.bind(this, { top: 1, height: -1 }));
 
 			// Sizer - Bottom
 			let sizerBottom = document.createElement("div");
 			sizerBottom.classList.add("sizer", "sizerBottom");
-			sizerBottom.addEventListener("mousedown", this.grabWindow.bind(this, { height: "1*" }));
+			sizerBottom.addEventListener("mousedown", this.grabWindow.bind(this, { height: 1 }));
 
 			// Sizer - Left
 			let sizerLeft = document.createElement("div");
 			sizerLeft.classList.add("sizer", "sizerLeft");
-			sizerLeft.addEventListener("mousedown", this.grabWindow.bind(this, { left: "1*", width: "-1*" }));
+			sizerLeft.addEventListener("mousedown", this.grabWindow.bind(this, { left: 1, width: -1 }));
 
 			// Sizer - Right
 			let sizerRight = document.createElement("div");
 			sizerRight.classList.add("sizer", "sizerRight");
-			sizerRight.addEventListener("mousedown", this.grabWindow.bind(this, { width: "1*" }));
+			sizerRight.addEventListener("mousedown", this.grabWindow.bind(this, { width: 1 }));
 
 			// Sizer - TopLeft
 			let sizerTopLeft = document.createElement("div");
 			sizerTopLeft.classList.add("sizer", "sizerCorner", "sizerTop", "sizerLeft");
-			sizerTopLeft.addEventListener("mousedown", this.grabWindow.bind(this, { top: "1*", left: "1*", width: "-1*", height: "-1*" }));
+			sizerTopLeft.addEventListener("mousedown", this.grabWindow.bind(this, { top: 1, left: 1, width: -1, height: -1 }));
 
 			// Sizer - TopRight
 			let sizerTopRight = document.createElement("div");
 			sizerTopRight.classList.add("sizer", "sizerCorner", "sizerTop", "sizerRight");
-			sizerTopRight.addEventListener("mousedown", this.grabWindow.bind(this, { top: "1*", width: "1*", height: "-1*" }));
+			sizerTopRight.addEventListener("mousedown", this.grabWindow.bind(this, { top: 1, width: 1, height: -1 }));
 
 			// Sizer - BottomLeft
 			let sizerBottomLeft = document.createElement("div");
 			sizerBottomLeft.classList.add("sizer", "sizerCorner", "sizerBottom", "sizerLeft");
-			sizerBottomLeft.addEventListener("mousedown", this.grabWindow.bind(this, { left: "1*", width: "-1*", height: "1*" }));
+			sizerBottomLeft.addEventListener("mousedown", this.grabWindow.bind(this, { left: 1, width: -1, height: 1 }));
 
 			// Sizer - BottomRight
 			let sizerBottomRight = document.createElement("div");
 			sizerBottomRight.classList.add("sizer", "sizerCorner", "sizerBottom", "sizerRight");
-			sizerBottomRight.addEventListener("mousedown", this.grabWindow.bind(this, { width: "1*", height: "1*" }));
+			sizerBottomRight.addEventListener("mousedown", this.grabWindow.bind(this, { width: 1, height: 1 }));
 
 			// Floating window element
 			let floatingWindow = document.createElement("div");
@@ -146,7 +146,7 @@ class FloatingWindow extends HTMLElement {
 			navigationBar.addEventListener("mousedown", event => {
 				// Allow window restoration when the navigation bar is dragged
 				this.dataset.allowRestoration = "true";
-				this.grabWindow({ top: "1*", left: "1*" }, event);
+				this.grabWindow({ top: 1, left: 1 }, event);
 			});
 			navigationBar.addEventListener("dblclick", () => {
 				if (this.dataset.restorablePosition) {
@@ -562,6 +562,8 @@ class FloatingWindow extends HTMLElement {
 		//Round up to px prematurely in order to avoid rounding errors later on
 		this.style.width = size.width + "px";
 		this.style.height = size.height + "px";
+		this.style.top = size.top + "px";
+		this.style.left = size.left + "px";
 	}
 
 	/**
@@ -792,11 +794,11 @@ class FloatingWindow extends HTMLElement {
 		let modifiers = ["top", "left", "width", "height"];
 		for (let modifier of modifiers) {
 			if (changeModifiers[modifier] == undefined) {
-				changeModifiers[modifier] = "0*";
+				changeModifiers[modifier] = 0;
 			}
 		}
 
-		if (this.dataset.sizeType == "Auto" && (changeModifiers.width != "0*" || changeModifiers.height != "0*")) {
+		if (this.dataset.sizeType == "Auto" && (changeModifiers.width != 0 || changeModifiers.height != 0)) {
 			// For the resize to be applicable, the type cannot be auto. Fixed is the closest appropriate one
 			this.dataset.sizeType = "Fixed";
 
@@ -804,15 +806,20 @@ class FloatingWindow extends HTMLElement {
 			this.fixateImplicitSize();
 		}
 
+		// Fixate size, as only the user is supposed to change it while interacting with it, and it's easier to calculate with px
+		this.fixateImplicitSize();
+
 		// Store initial positioning values
 		this.dataset.mouseDownX = event.clientX.toString();
 		this.dataset.mouseDownY = event.clientY.toString();
 
-		this.dataset.mouseDownLeft = this.style.left;
-		this.dataset.mouseDownTop = this.style.top;
+		let size = this.getBoundingClientRect();
 
-		this.dataset.mouseDownWidth = this.style.width;
-		this.dataset.mouseDownHeight = this.style.height;
+		this.dataset.mouseDownLeft = size.left.toString();
+		this.dataset.mouseDownTop = size.top.toString();
+
+		this.dataset.mouseDownWidth = size.width.toString();
+		this.dataset.mouseDownHeight = size.height.toString();
 
 		// Set position modifier values
 		this.dataset.changeModifierTop = changeModifiers.top;
@@ -859,6 +866,9 @@ class FloatingWindow extends HTMLElement {
 			throw new Error("The movement related preset value was undefined, but that should not have been possible as it's supposed to be initialized when the window is grabbed");
 		}
 
+		const mouseMovementComparedToGrabX = event.clientX - parseInt(this.dataset.mouseDownX);
+		const mouseMovementComparedToGrabY = event.clientY - parseInt(this.dataset.mouseDownY);
+
 		if (this.dataset.sizeType != "Auto") {
 			// Since in case of a "movement" only the size is adjusted, and "Auto" mode has no size to adjust, this is not applicable in that case
 			// Manual handling of the window is not a special state from which restoration is desired, so the state is deleted after restored
@@ -884,12 +894,12 @@ class FloatingWindow extends HTMLElement {
 		this.dataset.mouseMovementSumY = `${parseInt(this.dataset.mouseMovementSumY) + mouseMovementComparedToGrabY}`;
 
 		// Position
-		this.style.top = `calc(${this.dataset.mouseDownTop} + (${this.dataset.changeModifierTop} ${this.dataset.mouseMovementSumY}px))`;
-		this.style.left = `calc(${this.dataset.mouseDownLeft} + (${this.dataset.changeModifierLeft} ${this.dataset.mouseMovementSumX}px))`;
+		this.style.top = `${parseInt(this.dataset.mouseDownTop) + parseInt(this.dataset.changeModifierTop) * parseInt(this.dataset.mouseMovementSumY)}px`;
+		this.style.left = `${parseInt(this.dataset.mouseDownLeft) + parseInt(this.dataset.changeModifierLeft) * parseInt(this.dataset.mouseMovementSumX)}px`;
 
 		// Size
-		this.style.width = `calc(${this.dataset.mouseDownWidth} + (${this.dataset.changeModifierWidth} ${this.dataset.changeModifierLeft[0] != "0" ? this.dataset.mouseMovementSumX : mouseMovementComparedToGrabX}px))`;
-		this.style.height = `calc(${this.dataset.mouseDownHeight} + (${this.dataset.changeModifierHeight} ${this.dataset.changeModifierTop[0] != "0" ? this.dataset.mouseMovementSumY : mouseMovementComparedToGrabY}px))`;
+		this.style.width = `${parseInt(this.dataset.mouseDownWidth) + parseInt(this.dataset.changeModifierWidth) * (this.dataset.changeModifierLeft != "0" ? parseInt(this.dataset.mouseMovementSumX) : mouseMovementComparedToGrabX)}px`;
+		this.style.height = `${parseInt(this.dataset.mouseDownHeight) + parseInt(this.dataset.changeModifierHeight) * (this.dataset.changeModifierTop != "0" ? parseInt(this.dataset.mouseMovementSumY) : mouseMovementComparedToGrabY)}px`;
 	}
 
 	/**
