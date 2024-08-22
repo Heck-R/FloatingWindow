@@ -30,12 +30,12 @@ class FloatingWindow extends HTMLElement {
 		this.style.width = "50%";
 		this.style.height = "50%";
 
-		let iframe = document.createElement("iframe");
-		iframe.style.all = "unset";
-		iframe.style.position = "absolute";
-		iframe.style.width = "100%";
-		iframe.style.height = "100%";
-		this.appendChild(iframe);
+		this.iframe = document.createElement("iframe");
+		this.iframe.style.all = "unset";
+		this.iframe.style.position = "absolute";
+		this.iframe.style.width = "100%";
+		this.iframe.style.height = "100%";
+		this.appendChild(this.iframe);
 
 		// Default values
 		this.sizerThickness = "5px";
@@ -65,288 +65,7 @@ class FloatingWindow extends HTMLElement {
 		// // Shadow root for better separation from the page
 		// let shadowRoot = this.attachShadow({ mode: "open" });
 
-		iframe.addEventListener("load", () => {
-			if (!iframe.contentDocument || !iframe.contentDocument.body) {
-				throw "iframe is shit";
-			}
-			iframe.contentDocument.body.style.position = "absolute";
-			iframe.contentDocument.body.style.width = "100%";
-			iframe.contentDocument.body.style.height = "100%";
-			iframe.contentDocument.body.style.zIndex = "0";
-			iframe.contentDocument.body.style.margin = "0";
-
-			// Window sizer panel
-			let windowSizerContainer = document.createElement("div");
-			windowSizerContainer.id = "windowSizerContainer";
-
-			// Sizer - Accidental Selection Blocker
-			let sizerSelectionBlockerOverlay = document.createElement("div");
-			sizerSelectionBlockerOverlay.id = "sizerSelectionBlockerOverlay";
-			sizerSelectionBlockerOverlay.classList.add("hidden");
-
-			// Sizer - Top
-			let sizerTop = document.createElement("div");
-			sizerTop.classList.add("sizer", "sizerTop");
-			sizerTop.addEventListener("mousedown", this.grabWindow.bind(this, { top: 1, height: -1 }));
-
-			// Sizer - Bottom
-			let sizerBottom = document.createElement("div");
-			sizerBottom.classList.add("sizer", "sizerBottom");
-			sizerBottom.addEventListener("mousedown", this.grabWindow.bind(this, { height: 1 }));
-
-			// Sizer - Left
-			let sizerLeft = document.createElement("div");
-			sizerLeft.classList.add("sizer", "sizerLeft");
-			sizerLeft.addEventListener("mousedown", this.grabWindow.bind(this, { left: 1, width: -1 }));
-
-			// Sizer - Right
-			let sizerRight = document.createElement("div");
-			sizerRight.classList.add("sizer", "sizerRight");
-			sizerRight.addEventListener("mousedown", this.grabWindow.bind(this, { width: 1 }));
-
-			// Sizer - TopLeft
-			let sizerTopLeft = document.createElement("div");
-			sizerTopLeft.classList.add("sizer", "sizerCorner", "sizerTop", "sizerLeft");
-			sizerTopLeft.addEventListener("mousedown", this.grabWindow.bind(this, { top: 1, left: 1, width: -1, height: -1 }));
-
-			// Sizer - TopRight
-			let sizerTopRight = document.createElement("div");
-			sizerTopRight.classList.add("sizer", "sizerCorner", "sizerTop", "sizerRight");
-			sizerTopRight.addEventListener("mousedown", this.grabWindow.bind(this, { top: 1, width: 1, height: -1 }));
-
-			// Sizer - BottomLeft
-			let sizerBottomLeft = document.createElement("div");
-			sizerBottomLeft.classList.add("sizer", "sizerCorner", "sizerBottom", "sizerLeft");
-			sizerBottomLeft.addEventListener("mousedown", this.grabWindow.bind(this, { left: 1, width: -1, height: 1 }));
-
-			// Sizer - BottomRight
-			let sizerBottomRight = document.createElement("div");
-			sizerBottomRight.classList.add("sizer", "sizerCorner", "sizerBottom", "sizerRight");
-			sizerBottomRight.addEventListener("mousedown", this.grabWindow.bind(this, { width: 1, height: 1 }));
-
-			// Floating window element
-			let floatingWindow = document.createElement("div");
-			floatingWindow.id = "floatingWindow";
-
-			// Styles
-			// The style of the content itself. Since the window style removed all outside styling, this serves like a browser's default style
-			let contentStyle = document.createElement("style");
-			contentStyle.id = "contentStyle";
-			contentStyle.setAttribute("scoped", "");
-
-			// The style of the window itself, including the navigation bar and resizers at the edges
-			// For a consistent look across all browsers and pages, it starts by removing all styling
-			let windowStyle = document.createElement("style");
-			windowStyle.id = "windowStyle";
-			windowStyle.setAttribute("scoped", "");
-
-			// Navbar
-			let navigationBar = document.createElement("div");
-			navigationBar.id = "navigationBar";
-			navigationBar.addEventListener("mousedown", event => {
-				// Allow window restoration when the navigation bar is dragged
-				this.dataset.allowRestoration = "true";
-				this.grabWindow({ top: 1, left: 1 }, event);
-			});
-			navigationBar.addEventListener("dblclick", () => {
-				if (this.dataset.restorablePosition) {
-					// Restore if in special style
-					this.dataset.allowRestoration = "true";
-					this.restorePosition();
-				} else {
-					this.applyMaximizedStyle();
-				}
-			});
-			// Remove restoration approval in case it was a simple click and no movement
-			navigationBar.addEventListener("mouseup", () => {
-				delete this.dataset.allowRestoration;
-			});
-
-			this.boundMoveWindow = this.moveWindow.bind(this);
-			this.boundReleaseWindow = this.releaseWindow.bind(this);
-
-			// Size panel
-			let positionPanel = document.createElement("div");
-			positionPanel.id = "positionPanel";
-
-			let propagationStopper = event => {
-				event.stopPropagation();
-			};
-
-			/**
-			 * Creates a generic button (div) for window positioning
-			 * Hides all elements marked as "switchable" in the window
-			 *
-			 * @param {string} positionButtonId Id of the element
-			 * @param {string} text Text shown, preferably an icon-like character
-			 * @param {EventListener | undefined} listenerFunction Listener for clicking
-			 * @param {boolean} stopPropagation Stops the event's propagation if true
-			 * @returns {Element} The position button element
-			 */
-			let createPositionButton = (positionButtonId = "", text = "", listenerFunction = undefined, stopPropagation = true) => {
-				let positionButton = document.createElement("div");
-				positionButton.id = positionButtonId;
-				positionButton.classList.add("positionButton");
-				positionButton.innerText = text;
-
-				if (listenerFunction !== undefined) {
-					positionButton.addEventListener("click", listenerFunction);
-				}
-
-				if (stopPropagation) {
-					positionButton.addEventListener("mousedown", propagationStopper);
-					positionButton.addEventListener("click", event => {
-						this.setSwitchablesOff(event.target.parentElement);
-					});
-				}
-
-				return positionButton;
-			};
-
-			let createPositionSlot = (positionId = "", text = "", listenerFunction = undefined, stopPropagation = true) => {
-				let positionSlot = document.createElement("div");
-				positionSlot.id = `${positionId}Slot`;
-				positionSlot.classList.add("positionSlot");
-
-				let positionButton = createPositionButton(`${positionId}Button`, text, listenerFunction, stopPropagation);
-				positionSlot.appendChild(positionButton);
-
-				return positionSlot;
-			};
-
-			// SizeType buttons
-			let sizeTypeButtonPanel = document.createElement("div");
-			sizeTypeButtonPanel.id = "sizeTypeButtonPanel";
-			sizeTypeButtonPanel.classList.add("switchable");
-			sizeTypeButtonPanel.classList.add("hidden");
-
-			let sizeTypes = ["Relative", "Fixed"]; // "Auto" is removed until it's fixed
-			for (let sizeType of sizeTypes) {
-				let sizeTypeButton = createPositionButton("sizeType" + sizeType, sizeType, () => {
-					this.dataset.sizeType = sizeType;
-
-					// This is considered an action which "exits" a special mode, so no restoration should happen after this
-					delete this.dataset.allowRestoration;
-					delete this.dataset.restorablePosition;
-				});
-				sizeTypeButton.classList.add("sizeTypeButton");
-
-				sizeTypeButtonPanel.appendChild(sizeTypeButton);
-			}
-
-			// Fixed position buttons
-			let fixedButtonGrid = document.createElement("div");
-			fixedButtonGrid.id = "fixedButtonGrid";
-			fixedButtonGrid.classList.add("switchable");
-			fixedButtonGrid.classList.add("hidden");
-
-			let fixedButtonTexts = [
-				["┌", "┬", "┐"],
-				["├", "┼", "┤"],
-				["└", "┴", "┘"],
-			];
-
-			for (let rowNum = 0; rowNum < 3; rowNum++) {
-				for (let colNum = 0; colNum < 3; colNum++) {
-					/**
-					 * Event handler for the specific fixed style buttons
-					 *
-					 * @param {MouseEvent} event
-					 */
-					const applySpecificFixedStyle = event => {
-						if (event.shiftKey) {
-							this.applyFixedStyle({ x: `calc(${colNum * 50}%)`, y: `calc(${rowNum * 50}%)` }, { x: `calc(${colNum % 2 == 0 ? 50 : 100}%)`, y: `calc(${rowNum % 2 == 0 ? 50 : 100}%)` }, { x: colNum * 50, y: rowNum * 50 });
-						} else {
-							this.applyFixedStyle({ x: `calc(${colNum * 50}%)`, y: `calc(${rowNum * 50}%)` }, undefined, { x: colNum * 50, y: rowNum * 50 });
-						}
-					};
-					let fixedButton = createPositionButton("fixed" + rowNum + colNum, fixedButtonTexts[rowNum][colNum], applySpecificFixedStyle);
-					fixedButton.classList.add("fixedButton");
-
-					fixedButtonGrid.appendChild(fixedButton);
-				}
-			}
-
-			// Movable slot
-			let movableSlot = createPositionSlot("movable", "", undefined, false);
-
-			// SizeType slot
-			let sizeTypeSlot = createPositionSlot("sizeType", "%", FloatingWindow.switchElementVisibility.bind(this, sizeTypeButtonPanel));
-
-			// Minimize slot
-			let minimizeSlot = createPositionSlot("minimize", "_", this.applyMinimizedStyle.bind(this));
-
-			// Fixed slot
-			let fixedSlot = createPositionSlot("fixed", "+", FloatingWindow.switchElementVisibility.bind(this, fixedButtonGrid));
-
-			// Maximize slot
-			let maximizeSlot = createPositionSlot("maximize", "⛶", this.applyMaximizedStyle.bind(this));
-
-			// Close slot
-			let closeSlot = createPositionSlot("close", "X", this.closeWindow.bind(this));
-
-			// Content
-			let content = document.createElement("div");
-			content.id = "content";
-
-			// Assemble
-			iframe.contentDocument.head.appendChild(windowStyle);
-			iframe.contentDocument.head.appendChild(contentStyle);
-			iframe.contentDocument.body.appendChild(floatingWindow);
-			/**/ floatingWindow.appendChild(navigationBar);
-			/**/ /**/ navigationBar.appendChild(positionPanel);
-			/**/ /**/ /**/ positionPanel.appendChild(movableSlot);
-			/**/ /**/ /**/ positionPanel.appendChild(sizeTypeSlot);
-			/**/ /**/ /**/ /**/ sizeTypeSlot.appendChild(sizeTypeButtonPanel);
-			/**/ /**/ /**/ positionPanel.appendChild(minimizeSlot);
-			/**/ /**/ /**/ positionPanel.appendChild(fixedSlot);
-			/**/ /**/ /**/ /**/ fixedSlot.appendChild(fixedButtonGrid);
-			/**/ /**/ /**/ positionPanel.appendChild(maximizeSlot);
-			/**/ /**/ /**/ positionPanel.appendChild(closeSlot);
-			/**/ floatingWindow.appendChild(content);
-			iframe.contentDocument.body.appendChild(windowSizerContainer);
-			/**/ windowSizerContainer.appendChild(sizerSelectionBlockerOverlay);
-			/**/ windowSizerContainer.appendChild(sizerTop);
-			/**/ windowSizerContainer.appendChild(sizerBottom);
-			/**/ windowSizerContainer.appendChild(sizerLeft);
-			/**/ windowSizerContainer.appendChild(sizerRight);
-			/**/ windowSizerContainer.appendChild(sizerTopLeft);
-			/**/ windowSizerContainer.appendChild(sizerTopRight);
-			/**/ windowSizerContainer.appendChild(sizerBottomLeft);
-			/**/ windowSizerContainer.appendChild(sizerBottomRight);
-
-			// Window listeners
-			iframe.contentDocument.addEventListener("mousedown", this.setSwitchablesOff.bind(this));
-
-			// Window resize handling
-			window.addEventListener("resize", () => {
-				this.fixLessThanMinSize();
-			});
-
-			// Accessible parts
-			this.content = content;
-			this.contentStyle = contentStyle;
-			this.windowStyle = windowStyle;
-			this.iframe = iframe;
-
-			// return;
-			// Observed variables
-			if (this.dataset.sizeType == undefined) {
-				this.dataset.sizeType = "Fixed";
-				// this.dataset.sizeType = "Auto";
-			}
-
-			// Minimal style
-			this.style.cssText = `
-				position: fixed;
-				z-index: ${Number.MAX_SAFE_INTEGER};
-			`;
-
-			this.updateFloatingWindowStyle();
-			this.applyBasicFloatingStyle();
-
-			this.initContent(content);
-		});
+		this.iframe.addEventListener("load", this.initUI.bind(this));
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -356,6 +75,288 @@ class FloatingWindow extends HTMLElement {
 	constructor() {
 		super();
 		this.initContent = () => {}
+	}
+
+	initUI() {
+		if (!this.iframe.contentDocument || !this.iframe.contentDocument.body) {
+			throw "iframe is shit";
+		}
+		this.iframe.contentDocument.body.style.position = "absolute";
+		this.iframe.contentDocument.body.style.width = "100%";
+		this.iframe.contentDocument.body.style.height = "100%";
+		this.iframe.contentDocument.body.style.zIndex = "0";
+		this.iframe.contentDocument.body.style.margin = "0";
+
+		// Window sizer panel
+		let windowSizerContainer = document.createElement("div");
+		windowSizerContainer.id = "windowSizerContainer";
+
+		// Sizer - Accidental Selection Blocker
+		let sizerSelectionBlockerOverlay = document.createElement("div");
+		sizerSelectionBlockerOverlay.id = "sizerSelectionBlockerOverlay";
+		sizerSelectionBlockerOverlay.classList.add("hidden");
+
+		// Sizer - Top
+		let sizerTop = document.createElement("div");
+		sizerTop.classList.add("sizer", "sizerTop");
+		sizerTop.addEventListener("mousedown", this.grabWindow.bind(this, { top: 1, height: -1 }));
+
+		// Sizer - Bottom
+		let sizerBottom = document.createElement("div");
+		sizerBottom.classList.add("sizer", "sizerBottom");
+		sizerBottom.addEventListener("mousedown", this.grabWindow.bind(this, { height: 1 }));
+
+		// Sizer - Left
+		let sizerLeft = document.createElement("div");
+		sizerLeft.classList.add("sizer", "sizerLeft");
+		sizerLeft.addEventListener("mousedown", this.grabWindow.bind(this, { left: 1, width: -1 }));
+
+		// Sizer - Right
+		let sizerRight = document.createElement("div");
+		sizerRight.classList.add("sizer", "sizerRight");
+		sizerRight.addEventListener("mousedown", this.grabWindow.bind(this, { width: 1 }));
+
+		// Sizer - TopLeft
+		let sizerTopLeft = document.createElement("div");
+		sizerTopLeft.classList.add("sizer", "sizerCorner", "sizerTop", "sizerLeft");
+		sizerTopLeft.addEventListener("mousedown", this.grabWindow.bind(this, { top: 1, left: 1, width: -1, height: -1 }));
+
+		// Sizer - TopRight
+		let sizerTopRight = document.createElement("div");
+		sizerTopRight.classList.add("sizer", "sizerCorner", "sizerTop", "sizerRight");
+		sizerTopRight.addEventListener("mousedown", this.grabWindow.bind(this, { top: 1, width: 1, height: -1 }));
+
+		// Sizer - BottomLeft
+		let sizerBottomLeft = document.createElement("div");
+		sizerBottomLeft.classList.add("sizer", "sizerCorner", "sizerBottom", "sizerLeft");
+		sizerBottomLeft.addEventListener("mousedown", this.grabWindow.bind(this, { left: 1, width: -1, height: 1 }));
+
+		// Sizer - BottomRight
+		let sizerBottomRight = document.createElement("div");
+		sizerBottomRight.classList.add("sizer", "sizerCorner", "sizerBottom", "sizerRight");
+		sizerBottomRight.addEventListener("mousedown", this.grabWindow.bind(this, { width: 1, height: 1 }));
+
+		// Floating window element
+		let floatingWindow = document.createElement("div");
+		floatingWindow.id = "floatingWindow";
+
+		// Styles
+		// The style of the content itself. Since the window style removed all outside styling, this serves like a browser's default style
+		let contentStyle = document.createElement("style");
+		contentStyle.id = "contentStyle";
+		contentStyle.setAttribute("scoped", "");
+
+		// The style of the window itself, including the navigation bar and resizers at the edges
+		// For a consistent look across all browsers and pages, it starts by removing all styling
+		let windowStyle = document.createElement("style");
+		windowStyle.id = "windowStyle";
+		windowStyle.setAttribute("scoped", "");
+
+		// Navbar
+		let navigationBar = document.createElement("div");
+		navigationBar.id = "navigationBar";
+		navigationBar.addEventListener("mousedown", event => {
+			// Allow window restoration when the navigation bar is dragged
+			this.dataset.allowRestoration = "true";
+			this.grabWindow({ top: 1, left: 1 }, event);
+		});
+		navigationBar.addEventListener("dblclick", () => {
+			if (this.dataset.restorablePosition) {
+				// Restore if in special style
+				this.dataset.allowRestoration = "true";
+				this.restorePosition();
+			} else {
+				this.applyMaximizedStyle();
+			}
+		});
+		// Remove restoration approval in case it was a simple click and no movement
+		navigationBar.addEventListener("mouseup", () => {
+			delete this.dataset.allowRestoration;
+		});
+
+		this.boundMoveWindow = this.moveWindow.bind(this);
+		this.boundReleaseWindow = this.releaseWindow.bind(this);
+
+		// Size panel
+		let positionPanel = document.createElement("div");
+		positionPanel.id = "positionPanel";
+
+		let propagationStopper = event => {
+			event.stopPropagation();
+		};
+
+		/**
+		 * Creates a generic button (div) for window positioning
+		 * Hides all elements marked as "switchable" in the window
+		 *
+		 * @param {string} positionButtonId Id of the element
+		 * @param {string} text Text shown, preferably an icon-like character
+		 * @param {EventListener | undefined} listenerFunction Listener for clicking
+		 * @param {boolean} stopPropagation Stops the event's propagation if true
+		 * @returns {Element} The position button element
+		 */
+		let createPositionButton = (positionButtonId = "", text = "", listenerFunction = undefined, stopPropagation = true) => {
+			let positionButton = document.createElement("div");
+			positionButton.id = positionButtonId;
+			positionButton.classList.add("positionButton");
+			positionButton.innerText = text;
+
+			if (listenerFunction !== undefined) {
+				positionButton.addEventListener("click", listenerFunction);
+			}
+
+			if (stopPropagation) {
+				positionButton.addEventListener("mousedown", propagationStopper);
+				positionButton.addEventListener("click", event => {
+					this.setSwitchablesOff(event.target.parentElement);
+				});
+			}
+
+			return positionButton;
+		};
+
+		let createPositionSlot = (positionId = "", text = "", listenerFunction = undefined, stopPropagation = true) => {
+			let positionSlot = document.createElement("div");
+			positionSlot.id = `${positionId}Slot`;
+			positionSlot.classList.add("positionSlot");
+
+			let positionButton = createPositionButton(`${positionId}Button`, text, listenerFunction, stopPropagation);
+			positionSlot.appendChild(positionButton);
+
+			return positionSlot;
+		};
+
+		// SizeType buttons
+		let sizeTypeButtonPanel = document.createElement("div");
+		sizeTypeButtonPanel.id = "sizeTypeButtonPanel";
+		sizeTypeButtonPanel.classList.add("switchable");
+		sizeTypeButtonPanel.classList.add("hidden");
+
+		let sizeTypes = ["Relative", "Fixed"]; // "Auto" is removed until it's fixed
+		for (let sizeType of sizeTypes) {
+			let sizeTypeButton = createPositionButton("sizeType" + sizeType, sizeType, () => {
+				this.dataset.sizeType = sizeType;
+
+				// This is considered an action which "exits" a special mode, so no restoration should happen after this
+				delete this.dataset.allowRestoration;
+				delete this.dataset.restorablePosition;
+			});
+			sizeTypeButton.classList.add("sizeTypeButton");
+
+			sizeTypeButtonPanel.appendChild(sizeTypeButton);
+		}
+
+		// Fixed position buttons
+		let fixedButtonGrid = document.createElement("div");
+		fixedButtonGrid.id = "fixedButtonGrid";
+		fixedButtonGrid.classList.add("switchable");
+		fixedButtonGrid.classList.add("hidden");
+
+		let fixedButtonTexts = [
+			["┌", "┬", "┐"],
+			["├", "┼", "┤"],
+			["└", "┴", "┘"],
+		];
+
+		for (let rowNum = 0; rowNum < 3; rowNum++) {
+			for (let colNum = 0; colNum < 3; colNum++) {
+				/**
+				 * Event handler for the specific fixed style buttons
+				 *
+				 * @param {MouseEvent} event
+				 */
+				const applySpecificFixedStyle = event => {
+					if (event.shiftKey) {
+						this.applyFixedStyle({ x: `calc(${colNum * 50}%)`, y: `calc(${rowNum * 50}%)` }, { x: `calc(${colNum % 2 == 0 ? 50 : 100}%)`, y: `calc(${rowNum % 2 == 0 ? 50 : 100}%)` }, { x: colNum * 50, y: rowNum * 50 });
+					} else {
+						this.applyFixedStyle({ x: `calc(${colNum * 50}%)`, y: `calc(${rowNum * 50}%)` }, undefined, { x: colNum * 50, y: rowNum * 50 });
+					}
+				};
+				let fixedButton = createPositionButton("fixed" + rowNum + colNum, fixedButtonTexts[rowNum][colNum], applySpecificFixedStyle);
+				fixedButton.classList.add("fixedButton");
+
+				fixedButtonGrid.appendChild(fixedButton);
+			}
+		}
+
+		// Movable slot
+		let movableSlot = createPositionSlot("movable", "", undefined, false);
+
+		// SizeType slot
+		let sizeTypeSlot = createPositionSlot("sizeType", "%", FloatingWindow.switchElementVisibility.bind(this, sizeTypeButtonPanel));
+
+		// Minimize slot
+		let minimizeSlot = createPositionSlot("minimize", "_", this.applyMinimizedStyle.bind(this));
+
+		// Fixed slot
+		let fixedSlot = createPositionSlot("fixed", "+", FloatingWindow.switchElementVisibility.bind(this, fixedButtonGrid));
+
+		// Maximize slot
+		let maximizeSlot = createPositionSlot("maximize", "⛶", this.applyMaximizedStyle.bind(this));
+
+		// Close slot
+		let closeSlot = createPositionSlot("close", "X", this.closeWindow.bind(this));
+
+		// Content
+		let content = document.createElement("div");
+		content.id = "content";
+
+		// Assemble
+		this.iframe.contentDocument.head.appendChild(windowStyle);
+		this.iframe.contentDocument.head.appendChild(contentStyle);
+		this.iframe.contentDocument.body.appendChild(floatingWindow);
+		/**/ floatingWindow.appendChild(navigationBar);
+		/**/ /**/ navigationBar.appendChild(positionPanel);
+		/**/ /**/ /**/ positionPanel.appendChild(movableSlot);
+		/**/ /**/ /**/ positionPanel.appendChild(sizeTypeSlot);
+		/**/ /**/ /**/ /**/ sizeTypeSlot.appendChild(sizeTypeButtonPanel);
+		/**/ /**/ /**/ positionPanel.appendChild(minimizeSlot);
+		/**/ /**/ /**/ positionPanel.appendChild(fixedSlot);
+		/**/ /**/ /**/ /**/ fixedSlot.appendChild(fixedButtonGrid);
+		/**/ /**/ /**/ positionPanel.appendChild(maximizeSlot);
+		/**/ /**/ /**/ positionPanel.appendChild(closeSlot);
+		/**/ floatingWindow.appendChild(content);
+		this.iframe.contentDocument.body.appendChild(windowSizerContainer);
+		/**/ windowSizerContainer.appendChild(sizerSelectionBlockerOverlay);
+		/**/ windowSizerContainer.appendChild(sizerTop);
+		/**/ windowSizerContainer.appendChild(sizerBottom);
+		/**/ windowSizerContainer.appendChild(sizerLeft);
+		/**/ windowSizerContainer.appendChild(sizerRight);
+		/**/ windowSizerContainer.appendChild(sizerTopLeft);
+		/**/ windowSizerContainer.appendChild(sizerTopRight);
+		/**/ windowSizerContainer.appendChild(sizerBottomLeft);
+		/**/ windowSizerContainer.appendChild(sizerBottomRight);
+
+		// Window listeners
+		this.iframe.contentDocument.addEventListener("mousedown", this.setSwitchablesOff.bind(this));
+
+		// Window resize handling
+		window.addEventListener("resize", () => {
+			this.fixLessThanMinSize();
+		});
+
+		// Accessible parts
+		this.content = content;
+		this.contentStyle = contentStyle;
+		this.windowStyle = windowStyle;
+
+		// return;
+		// Observed variables
+		if (this.dataset.sizeType == undefined) {
+			this.dataset.sizeType = "Fixed";
+			// this.dataset.sizeType = "Auto";
+		}
+
+		// Minimal style
+		this.style.cssText = `
+			position: fixed;
+			z-index: ${Number.MAX_SAFE_INTEGER};
+		`;
+
+		this.updateFloatingWindowStyle();
+		this.applyBasicFloatingStyle();
+
+		this.initContent(content);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
