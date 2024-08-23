@@ -2,8 +2,6 @@
 
 ## Must
 
-- Provide awaitable interface for the content being ready
-
 ## Maybe
 
 - Add sidebar mode (acceptable if buggy)
@@ -14,7 +12,6 @@
 
 ## Must
 
-- Fix iframe load and onload not working on chrome
 - Fix positioning and min width in current combination pushing the window (top & left resizers)
 - Auto mode
 
