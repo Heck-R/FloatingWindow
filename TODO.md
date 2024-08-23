@@ -17,6 +17,8 @@
 
 ## Maybe
 
+- Iframe load stopping hack seems to be handled questionably by the web console in Firefox (cannot detect anything inside the iframe until reopening the web console)
+  While this is technically not an issue, it is questionable whether it happens because the iframe load stopping is wizardry, or because the web console is buggy
 - Fix top bar sizing  (currently based on the iframe size, but should be the original page size, as that is the one representing the user working environment)
 
 # Others
