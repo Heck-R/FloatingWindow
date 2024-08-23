@@ -9,33 +9,75 @@
  *   - Relative: Resizes and repositions in a way to always occupy the same relative location even if the browser window is resized
  * - Quick positioning
  *   - The window can be aligned to the sides or corners
- * - Custom style
- *   - Ignores page css for consistent look
- *   - Custom styles can be applied using the 'contentStyle' property (style element)
- *     - As the content is the user's scope, this can be completely overwritten without unexpected consequences
- *     - Prebuilt styles can be found in the 'preBuiltStyles' static property
- *   - The whole window can also be styled using the 'windowStyle' property (style element)
- *     - This style makes the window navigation look as it does, so completely overwriting it is not recommended
- * - Content can be added to the element referenced by the 'content' property (element)
+ *     - The window is auto-sized when pressing shift at the time of the alignment
+ *       - The window size is restored when the window is grabbed
+ * - Customization
+ *   - Custom content
+ *     - The window is meant to be filled with custom content via the {@link content}
+ *     - The window is aimed at mini applications, so it is safe from the outer page's logic, including events and their prevention
+ *   - Custom style
+ *     - Ignores page css for a consistent look
+ *     - Custom styles can be applied via the {@link contentStyle}
+ *     - The whole window can also be styled using the {@link windowStyle}
+ *       - This style makes the window navigation look as it does, so completely overwriting it is not recommended
  */
 class FloatingWindow extends HTMLElement {
+	/** Intended tag name */
+	static tagName = "floating-window";
+
+	/**
+	 * The gatekeeper of functionality
+	 *
+	 * The floating window is meant to work on any page consistently, and the only way to avoid
+	 * crazy styling, event handlers and event prevention (e.g.: at document level like GitHub and Azure does)
+	 *
+	 * @type {HTMLIFrameElement}
+	 */
+	#iframe;
+
+	/**
+	 * The window's entry point for adding custom content
+	 *
+	 * Functionally only available after the window is added to the page
+	 *
+	 * @type {HTMLDivElement}
+	 */
+	content;
+
+	/**
+	 * Style element for styling the custom content section
+	 *
+	 * It is comparable to a browser's default style, although this will apply on top of that
+	 *
+	 * This can be completely overwritten without unexpected consequences
+	 *
+	 * Prebuilt styles can be found in {@link preBuiltStyles}
+	 *
+	 * Optionally the custom content can be styled here as well, although note, that here all selectors
+	 * must start with "#content ", otherwise it may impact the window's navigation
+	 *
+	 * @type {HTMLStyleElement}
+	 */
+	contentStyle;
+
+	/**
+	 * This style is responsible for the window's navigation elements, so completely overwriting it is discouraged,
+	 * as this is technically implementation detail, and it can easily break the window
+	 *
+	 * @type {HTMLStyleElement}
+	 */
+	windowStyle;
+
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// Overrides
 
 	connectedCallback() {
-		this.style.all = "unset";
+		this.style.all = "unset"; // The page's css must not affect this element
 		this.style.position = "fixed";
 		this.style.top = "0";
 		this.style.left = "0";
 		this.style.width = "50%";
 		this.style.height = "50%";
-
-		this.iframe = document.createElement("iframe");
-		this.iframe.style.all = "unset";
-		this.iframe.style.position = "absolute";
-		this.iframe.style.width = "100%";
-		this.iframe.style.height = "100%";
-		this.appendChild(this.iframe);
 
 		// Default values
 		this.sizerThickness = "5px";
@@ -62,30 +104,41 @@ class FloatingWindow extends HTMLElement {
 			attributeFilter: ["data-size-type"],
 		});
 
-		// // Shadow root for better separation from the page
-		// let shadowRoot = this.attachShadow({ mode: "open" });
-
-		this.iframe.addEventListener("load", this.initUI.bind(this));
+		this.initUI();
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// initialization
 
-	// prettier-ignore
-	constructor() {
-		super();
-		this.initContent = () => {}
-	}
-
 	initUI() {
-		if (!this.iframe.contentDocument || !this.iframe.contentDocument.body) {
-			throw "iframe is shit";
+		this.#iframe = document.createElement("iframe");
+		this.#iframe.style.all = "unset"; // The page's css must not affect this element
+		this.#iframe.style.position = "absolute";
+		this.#iframe.style.width = "100%";
+		this.#iframe.style.height = "100%";
+		this.appendChild(this.#iframe);
+
+		if (!this.#iframe.contentWindow || !this.#iframe.contentDocument || !this.#iframe.contentDocument.body) {
+			throw "The iframe's content is not available, this likely means that the browser is not initializing anything before trying to load the source, which we don't have here, but the browser defaults to a blank page";
 		}
-		this.iframe.contentDocument.body.style.position = "absolute";
-		this.iframe.contentDocument.body.style.width = "100%";
-		this.iframe.contentDocument.body.style.height = "100%";
-		this.iframe.contentDocument.body.style.zIndex = "0";
-		this.iframe.contentDocument.body.style.margin = "0";
+
+		// This is just pure black magic
+		// The loading of the iframe is stopped, because the iframe always has a page to load (if nothing provided then a blank one), which may happen after adding content synchronously here
+		// Here, there is no need to load anything, as all the content is generated here (the iframe exists only to shield the user content from the outside event prevention)
+		// At the time of writing, an iframe does initialize a blank page instantly in major browsers (although it's not documented, so relying on it is questionable)
+		// => Preventing the loading to avoid the content being overwritten after filled with content and then fill it with content
+		// This listener must be above the addition to the document
+		// If an issue comes up later, with the iframe's state, then options include:
+		// - If the document exists at least, then create the html, head and body
+		// - If the document does not exist, then wait for the iframe load event, and fill the content then, and then trigger a load event on this element.
+		//   As it is annoying to wait for events due to implementation details (using an iframe), making an async property could be considered
+		this.#iframe.contentWindow.stop();
+
+		this.#iframe.contentDocument.body.style.position = "absolute";
+		this.#iframe.contentDocument.body.style.width = "100%";
+		this.#iframe.contentDocument.body.style.height = "100%";
+		this.#iframe.contentDocument.body.style.zIndex = "0";
+		this.#iframe.contentDocument.body.style.margin = "0";
 
 		// Window sizer panel
 		let windowSizerContainer = document.createElement("div");
@@ -142,15 +195,15 @@ class FloatingWindow extends HTMLElement {
 
 		// Styles
 		// The style of the content itself. Since the window style removed all outside styling, this serves like a browser's default style
-		let contentStyle = document.createElement("style");
-		contentStyle.id = "contentStyle";
-		contentStyle.setAttribute("scoped", "");
+		this.contentStyle = document.createElement("style");
+		this.contentStyle.id = "contentStyle";
+		this.contentStyle.setAttribute("scoped", "");
 
 		// The style of the window itself, including the navigation bar and resizers at the edges
 		// For a consistent look across all browsers and pages, it starts by removing all styling
-		let windowStyle = document.createElement("style");
-		windowStyle.id = "windowStyle";
-		windowStyle.setAttribute("scoped", "");
+		this.windowStyle = document.createElement("style");
+		this.windowStyle.id = "windowStyle";
+		this.windowStyle.setAttribute("scoped", "");
 
 		// Navbar
 		let navigationBar = document.createElement("div");
@@ -298,13 +351,13 @@ class FloatingWindow extends HTMLElement {
 		let closeSlot = createPositionSlot("close", "X", this.closeWindow.bind(this));
 
 		// Content
-		let content = document.createElement("div");
-		content.id = "content";
+		this.content = document.createElement("div");
+		this.content.id = "content";
 
 		// Assemble
-		this.iframe.contentDocument.head.appendChild(windowStyle);
-		this.iframe.contentDocument.head.appendChild(contentStyle);
-		this.iframe.contentDocument.body.appendChild(floatingWindow);
+		this.#iframe.contentDocument.head.appendChild(this.windowStyle);
+		this.#iframe.contentDocument.head.appendChild(this.contentStyle);
+		this.#iframe.contentDocument.body.appendChild(floatingWindow);
 		/**/ floatingWindow.appendChild(navigationBar);
 		/**/ /**/ navigationBar.appendChild(positionPanel);
 		/**/ /**/ /**/ positionPanel.appendChild(movableSlot);
@@ -315,8 +368,8 @@ class FloatingWindow extends HTMLElement {
 		/**/ /**/ /**/ /**/ fixedSlot.appendChild(fixedButtonGrid);
 		/**/ /**/ /**/ positionPanel.appendChild(maximizeSlot);
 		/**/ /**/ /**/ positionPanel.appendChild(closeSlot);
-		/**/ floatingWindow.appendChild(content);
-		this.iframe.contentDocument.body.appendChild(windowSizerContainer);
+		/**/ floatingWindow.appendChild(this.content);
+		this.#iframe.contentDocument.body.appendChild(windowSizerContainer);
 		/**/ windowSizerContainer.appendChild(sizerSelectionBlockerOverlay);
 		/**/ windowSizerContainer.appendChild(sizerTop);
 		/**/ windowSizerContainer.appendChild(sizerBottom);
@@ -328,19 +381,13 @@ class FloatingWindow extends HTMLElement {
 		/**/ windowSizerContainer.appendChild(sizerBottomRight);
 
 		// Window listeners
-		this.iframe.contentDocument.addEventListener("mousedown", this.setSwitchablesOff.bind(this));
+		this.#iframe.contentDocument.addEventListener("mousedown", this.setSwitchablesOff.bind(this));
 
 		// Window resize handling
 		window.addEventListener("resize", () => {
 			this.fixLessThanMinSize();
 		});
 
-		// Accessible parts
-		this.content = content;
-		this.contentStyle = contentStyle;
-		this.windowStyle = windowStyle;
-
-		// return;
 		// Observed variables
 		if (this.dataset.sizeType == undefined) {
 			this.dataset.sizeType = "Fixed";
@@ -355,8 +402,6 @@ class FloatingWindow extends HTMLElement {
 
 		this.updateFloatingWindowStyle();
 		this.applyBasicFloatingStyle();
-
-		this.initContent(content);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -545,7 +590,7 @@ class FloatingWindow extends HTMLElement {
 	 * @param {Element} exceptionalElementContainer Switchable in this container will not be collapsed
 	 */
 	setSwitchablesOff(exceptionalElementContainer) {
-		let switchableElements = this.iframe.contentDocument.body.querySelectorAll(".switchable");
+		let switchableElements = this.#iframe.contentDocument.body.querySelectorAll(".switchable");
 		Array.prototype.forEach.call(switchableElements, switchableElement => {
 			if (switchableElement.parentElement !== exceptionalElementContainer) {
 				FloatingWindow.switchElementVisibility(switchableElement, "off");
@@ -836,12 +881,12 @@ class FloatingWindow extends HTMLElement {
 		this.dataset.mouseMovementSumY = "0";
 
 		// Apply invisible overlay to block unwanted selection on the page
-		this.iframe.contentDocument.getElementById("sizerSelectionBlockerOverlay").classList.remove("hidden");
+		this.#iframe.contentDocument.getElementById("sizerSelectionBlockerOverlay").classList.remove("hidden");
 
 		// Add move and release listeners
 		// Adding the event to the document somehow magically triggers even when going outside of the iframe, going out to the browser toolbar or outside the browser window
-		this.iframe.contentDocument.addEventListener("mousemove", this.boundMoveWindow);
-		this.iframe.contentDocument.addEventListener("mouseup", this.boundReleaseWindow);
+		this.#iframe.contentDocument.addEventListener("mousemove", this.boundMoveWindow);
+		this.#iframe.contentDocument.addEventListener("mouseup", this.boundReleaseWindow);
 	}
 
 	/**
@@ -927,11 +972,11 @@ class FloatingWindow extends HTMLElement {
 		delete this.dataset.changeModifierHeight;
 
 		// Remove invisible overlay to block unwanted selection on the page
-		this.iframe.contentDocument.getElementById("sizerSelectionBlockerOverlay").classList.add("hidden");
+		this.#iframe.contentDocument.getElementById("sizerSelectionBlockerOverlay").classList.add("hidden");
 
 		// Remove move and release listeners
-		this.iframe.contentDocument.removeEventListener("mousemove", this.boundMoveWindow);
-		this.iframe.contentDocument.removeEventListener("mouseup", this.boundReleaseWindow);
+		this.#iframe.contentDocument.removeEventListener("mousemove", this.boundMoveWindow);
+		this.#iframe.contentDocument.removeEventListener("mouseup", this.boundReleaseWindow);
 
 		// Fix and change size to appropriate type
 		this.fixLessThanMinSize();
@@ -1300,4 +1345,4 @@ class FloatingWindow extends HTMLElement {
 }
 
 // Register FloatingWindow
-customElements.define("floating-window", FloatingWindow);
+customElements.define(FloatingWindow.tagName, FloatingWindow);
