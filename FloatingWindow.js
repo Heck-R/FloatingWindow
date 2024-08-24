@@ -144,11 +144,6 @@ class FloatingWindow extends HTMLElement {
 		let windowSizerContainer = document.createElement("div");
 		windowSizerContainer.id = "windowSizerContainer";
 
-		// Sizer - Accidental Selection Blocker
-		let sizerSelectionBlockerOverlay = document.createElement("div");
-		sizerSelectionBlockerOverlay.id = "sizerSelectionBlockerOverlay";
-		sizerSelectionBlockerOverlay.classList.add("hidden");
-
 		// Sizer - Top
 		let sizerTop = document.createElement("div");
 		sizerTop.classList.add("sizer", "sizerTop");
@@ -370,7 +365,6 @@ class FloatingWindow extends HTMLElement {
 		/**/ /**/ /**/ positionPanel.appendChild(closeSlot);
 		/**/ floatingWindow.appendChild(this.content);
 		this.#iframe.contentDocument.body.appendChild(windowSizerContainer);
-		/**/ windowSizerContainer.appendChild(sizerSelectionBlockerOverlay);
 		/**/ windowSizerContainer.appendChild(sizerTop);
 		/**/ windowSizerContainer.appendChild(sizerBottom);
 		/**/ windowSizerContainer.appendChild(sizerLeft);
@@ -880,9 +874,6 @@ class FloatingWindow extends HTMLElement {
 		this.dataset.mouseMovementSumX = "0";
 		this.dataset.mouseMovementSumY = "0";
 
-		// Apply invisible overlay to block unwanted selection on the page
-		this.#iframe.contentDocument.getElementById("sizerSelectionBlockerOverlay").classList.remove("hidden");
-
 		// Add move and release listeners
 		// Adding the event to the document somehow magically triggers even when going outside of the iframe, going out to the browser toolbar or outside the browser window
 		this.#iframe.contentDocument.addEventListener("mousemove", this.boundMoveWindow);
@@ -970,9 +961,6 @@ class FloatingWindow extends HTMLElement {
 
 		delete this.dataset.changeModifierWidth;
 		delete this.dataset.changeModifierHeight;
-
-		// Remove invisible overlay to block unwanted selection on the page
-		this.#iframe.contentDocument.getElementById("sizerSelectionBlockerOverlay").classList.add("hidden");
 
 		// Remove move and release listeners
 		this.#iframe.contentDocument.removeEventListener("mousemove", this.boundMoveWindow);
@@ -1118,7 +1106,6 @@ class FloatingWindow extends HTMLElement {
 
 				grid-template-columns: 1fr;
 				grid-template-rows: 1fr 1fr 1fr;
-
 			}
 
 			#fixedButtonGrid:not(#content *) {
@@ -1126,18 +1113,6 @@ class FloatingWindow extends HTMLElement {
 
 				grid-template-columns: 1fr 1fr 1fr;
 				grid-template-rows: 1fr 1fr 1fr;
-
-			}
-
-
-			#sizerSelectionBlockerOverlay:not(#content *) {
-				position: fixed;
-
-				top: 0;
-				left: 0;
-
-				width: 100vw;
-				height: 100vh;
 			}
 
 			.sizer:not(#content *) {
