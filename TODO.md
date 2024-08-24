@@ -25,7 +25,6 @@
 
 ## Must
 
-- Is "sizerSelectionBlockerOverlay" still needed with the iframe?
 - Avoid infinite string-int conversion (data properties may just not be ideal)
 - Clean up
   - Handle all types properly (~ linter warnings)
