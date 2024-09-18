@@ -1253,6 +1253,11 @@ class FloatingWindow extends HTMLElement {
 				box-shadow: inset 0 0 0 2px #777;
 			}
 
+			/* Textarea */
+			#content textarea {
+				background-color: #222;
+			}
+
 			/* Linking */
 			#content :any-link {
 				cursor: pointer;
