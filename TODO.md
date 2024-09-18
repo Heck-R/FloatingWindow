@@ -6,6 +6,7 @@
 
 - Add sidebar mode (acceptable if buggy)
   - the window acts as a proper sidebar, not above the page content, but taking space from it
+  - hint: https://css-tricks.com/snippets/css/complete-guide-grid/
 - Move window back to interact-able part of the window to avoid it being lost (maybe a navigation button amount, so it is possible to grab or maximize)
 
 # Fixes
@@ -17,9 +18,12 @@
 
 ## Maybe
 
-- Iframe load stopping hack seems to be handled questionably by the web console in Firefox (cannot detect anything inside the iframe until reopening the web console)
-  While this is technically not an issue, it is questionable whether it happens because the iframe load stopping is wizardry, or because the web console is buggy
 - Fix top bar sizing  (currently based on the iframe size, but should be the original page size, as that is the one representing the user working environment)
+- Firefox specific
+  - Iframe load stopping hack seems to be handled questionably by the web console in Firefox (cannot detect anything inside the iframe until reopening the web console)  \
+    While this is technically not an issue, it is questionable whether it happens because the iframe load stopping is wizardry, or because the web console is buggy
+  - Jittering (see my [bugzilla ticket](https://bugzilla.mozilla.org/show_bug.cgi?id=1914785))
+    The relevance here is that the wrong event coordinates make the floating window jitter / vibrate when overflow happens inside the iframe of the window
 
 # Others
 
