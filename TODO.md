@@ -18,7 +18,6 @@
 
 ## Maybe
 
-- Fix top bar sizing  (currently based on the iframe size, but should be the original page size, as that is the one representing the user working environment)
 - Firefox specific
   - Iframe load stopping hack seems to be handled questionably by the web console in Firefox (cannot detect anything inside the iframe until reopening the web console)  \
     While this is technically not an issue, it is questionable whether it happens because the iframe load stopping is wizardry, or because the web console is buggy
@@ -28,8 +27,9 @@
 # Others
 
 ## Must
-
+	
 - Avoid infinite string-int conversion (data properties may just not be ideal)
+- Re-think default content styles ()
 - Clean up
   - Handle all types properly (~ linter warnings)
   - Remove obsolete stuff
