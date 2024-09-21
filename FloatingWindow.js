@@ -81,10 +81,7 @@ class FloatingWindow extends HTMLElement {
 
 		// Default values
 		this.sizerThickness = "5px";
-		this.windowBorderRadius = "calc(5px)";
-		this.navigationBarHeight = "calc(10px + 1.5vh)";
-		this.minWindowWidth = "calc(90px + 13.5vh)"; // 9 * navigationBarHeight - Why? Because that ratio looks nice
-		this.minFixedButtonSize = "calc(45px + 6.75vh)"; // 3/6 * minWindowWidth - Why? Because there are 6 button slots in the nav bar and this spans 3 like this
+		this.windowBorderRadius = "5px";
 
 		// Create dataset variable observers (initiated in connectedCallback())
 		let observer = new MutationObserver(mutations => {
@@ -226,8 +223,8 @@ class FloatingWindow extends HTMLElement {
 		this.boundReleaseWindow = this.releaseWindow.bind(this);
 
 		// Size panel
-		let positionPanel = document.createElement("div");
-		positionPanel.id = "positionPanel";
+		this.positionPanel = document.createElement("div");
+		this.positionPanel.id = "positionPanel";
 
 		let propagationStopper = event => {
 			event.stopPropagation();
@@ -354,15 +351,15 @@ class FloatingWindow extends HTMLElement {
 		this.#iframe.contentDocument.head.appendChild(this.contentStyle);
 		this.#iframe.contentDocument.body.appendChild(floatingWindow);
 		/**/ floatingWindow.appendChild(navigationBar);
-		/**/ /**/ navigationBar.appendChild(positionPanel);
-		/**/ /**/ /**/ positionPanel.appendChild(movableSlot);
-		/**/ /**/ /**/ positionPanel.appendChild(sizeTypeSlot);
+		/**/ /**/ navigationBar.appendChild(this.positionPanel);
+		/**/ /**/ /**/ this.positionPanel.appendChild(movableSlot);
+		/**/ /**/ /**/ this.positionPanel.appendChild(sizeTypeSlot);
 		/**/ /**/ /**/ /**/ sizeTypeSlot.appendChild(sizeTypeButtonPanel);
-		/**/ /**/ /**/ positionPanel.appendChild(minimizeSlot);
-		/**/ /**/ /**/ positionPanel.appendChild(fixedSlot);
+		/**/ /**/ /**/ this.positionPanel.appendChild(minimizeSlot);
+		/**/ /**/ /**/ this.positionPanel.appendChild(fixedSlot);
 		/**/ /**/ /**/ /**/ fixedSlot.appendChild(fixedButtonGrid);
-		/**/ /**/ /**/ positionPanel.appendChild(maximizeSlot);
-		/**/ /**/ /**/ positionPanel.appendChild(closeSlot);
+		/**/ /**/ /**/ this.positionPanel.appendChild(maximizeSlot);
+		/**/ /**/ /**/ this.positionPanel.appendChild(closeSlot);
 		/**/ floatingWindow.appendChild(this.content);
 		this.#iframe.contentDocument.body.appendChild(windowSizerContainer);
 		/**/ windowSizerContainer.appendChild(sizerTop);
@@ -379,6 +376,7 @@ class FloatingWindow extends HTMLElement {
 
 		// Window resize handling
 		window.addEventListener("resize", () => {
+			this.applyOriginPageSizeRelatedStyles();
 			this.fixLessThanMinSize();
 		});
 
@@ -395,6 +393,7 @@ class FloatingWindow extends HTMLElement {
 		`;
 
 		this.updateFloatingWindowStyle();
+		this.applyOriginPageSizeRelatedStyles();
 		this.applyBasicFloatingStyle();
 	}
 
@@ -607,6 +606,8 @@ class FloatingWindow extends HTMLElement {
 	}
 
 	/**
+	 * Fix and change size to appropriate type
+	 *
 	 * Sets the size to the minimum when it is set to smaller (in order to avoid resizing problems later on)
 	 * It also implicitly reapplies the size type in order for the size to be in the appropriate unit
 	 */
@@ -688,21 +689,23 @@ class FloatingWindow extends HTMLElement {
 
 	/**
 	 * Applies basic floating style.
-	 * - Set min size
-	 * - Unset size
-	 * - Set position to top left
+	 * Removes alls styling from the outermost window except for the following,
+	 * which it initializes if missing:
+	 * - Position (default: top left)
+	 * - Size (default: empty)
+	 * - Min size (default: empty, but this is always expected to be inherited)
 	 * - Set as top-most floating element
 	 */
 	applyBasicFloatingStyle() {
 		let inheritableStyleAttributes = {
+			top: "0",
+			left: "0",
+
 			width: "",
 			height: "",
 
-			"min-width": this.minWindowWidth,
-			"min-height": this.navigationBarHeight,
-
-			top: "0",
-			left: "0",
+			"min-width": "",
+			"min-height": "",
 		};
 
 		let partiallyInheritedCssText = "";
@@ -764,7 +767,6 @@ class FloatingWindow extends HTMLElement {
 			this.onFloatingDataChange_sizeType();
 		}
 
-		// Fix and change size to appropriate type
 		this.fixLessThanMinSize();
 	}
 
@@ -803,6 +805,25 @@ class FloatingWindow extends HTMLElement {
 		);
 
 		this.dataset.sizeType = "Fixed";
+	}
+
+	/**
+	 * Most elements reside withing the an iframe, but somethings are intended to be sized based on the browser window.
+	 * This is not possible with CSS as it has no knowledge of that, so this passes the info to the inner style
+	 * and also sizes the outer frame based on the sizing of the inner elements
+	 */
+	applyOriginPageSizeRelatedStyles() {
+		if (!this.windowStyle) {
+			throw new Error("Something unexpected happened, the minimum window sizing values are not set");
+		}
+		const navigationBarHeight = `${10 + 0.015 * window.innerHeight}px`;
+
+		const variableContextElement = this.#iframe.contentDocument.querySelector(":root");
+		variableContextElement.style.setProperty("--navigation-bar-height", navigationBarHeight);
+		const computedStyle = getComputedStyle(variableContextElement);
+
+		this.style.minWidth = `calc(${this.positionPanel.childElementCount} * ${computedStyle.getPropertyValue("--position-slot-width")} + 2 * ${this.sizerThickness})`;
+		this.style.minHeight = `calc(${navigationBarHeight} + 2 * ${this.sizerThickness})`;
 	}
 
 	/**
@@ -966,7 +987,6 @@ class FloatingWindow extends HTMLElement {
 		this.#iframe.contentDocument.removeEventListener("mousemove", this.boundMoveWindow);
 		this.#iframe.contentDocument.removeEventListener("mouseup", this.boundReleaseWindow);
 
-		// Fix and change size to appropriate type
 		this.fixLessThanMinSize();
 	}
 
@@ -977,8 +997,18 @@ class FloatingWindow extends HTMLElement {
 	 * Applies the general style on the floating window
 	 */
 	updateFloatingWindowStyle() {
+		if (!this.positionPanel) {
+			throw new Error("Some elements are not initialized when expected");
+		}
 		this.contentStyle.textContent = FloatingWindow.preBuiltStyles.darkMode;
 		this.windowStyle.textContent = `
+			:root {
+				/* An arbitrary size. This is updated when the window is resized */
+				--navigation-bar-height: 10px;
+
+				--position-slot-width: calc(1.5 * var(--navigation-bar-height));
+			}
+
 			[contenteditable]:not(#content *) {
 				outline: 0px solid transparent;
 			}
@@ -1015,7 +1045,7 @@ class FloatingWindow extends HTMLElement {
 				display: block;
 
 				width: 100%;
-				height: ${this.navigationBarHeight};
+				height: var(--navigation-bar-height);
 
 				background-color: #444;
 
@@ -1029,8 +1059,6 @@ class FloatingWindow extends HTMLElement {
 				display: flex;
 
 				height: 100%;
-				width: 25%;
-				min-width: ${this.minWindowWidth};
 
 				float: right;
 			}
@@ -1043,7 +1071,7 @@ class FloatingWindow extends HTMLElement {
 
 			.positionSlot:not(#content *) {
 				height: 100%;
-				width: 20%;
+				width: var(--position-slot-width);
 			}
 
 			.positionButton:not(#content *) {
@@ -1055,7 +1083,7 @@ class FloatingWindow extends HTMLElement {
 				align-items: center;
 				justify-content: center;
 
-				font-size: calc(10px + 1vh);
+				font-size: calc(0.8 * var(--navigation-bar-height));
 				font-weight: bold;
 
 				cursor: pointer;
@@ -1096,12 +1124,12 @@ class FloatingWindow extends HTMLElement {
 
 			.switchable:not(#content *) {
 				position: absolute;
-
-				min-width: ${this.minFixedButtonSize};
-				min-height: ${this.minFixedButtonSize};
 			}
 
 			#sizeTypeButtonPanel:not(#content *) {
+				width: calc(3 * var(--position-slot-width));
+				height: calc(3 * var(--position-slot-width));
+
 				display: grid;
 
 				grid-template-columns: 1fr;
@@ -1109,6 +1137,9 @@ class FloatingWindow extends HTMLElement {
 			}
 
 			#fixedButtonGrid:not(#content *) {
+				width: calc(3 * var(--position-slot-width));
+				height: calc(3 * var(--position-slot-width));
+
 				display: grid;
 
 				grid-template-columns: 1fr 1fr 1fr;
@@ -1197,7 +1228,7 @@ class FloatingWindow extends HTMLElement {
 				display: block;
 
 				width: 100%;
-				height: calc(100% - ${this.navigationBarHeight});
+				height: calc(100% - var(--navigation-bar-height));
 
 				overflow: auto;
 			}
