@@ -219,6 +219,9 @@ class FloatingWindow extends HTMLElement {
 			delete this.dataset.allowRestoration;
 		});
 
+		// Situational event listeners later being added and removed to lessen unnecessary load on the event loop
+		// Removing event listeners can only be done using the same function reference, but passing the function directly makes it lose "this"
+		// To fix this, a version of the function is kept with "this" specifically bound to the instance of this context
 		this.boundMoveWindow = this.moveWindow.bind(this);
 		this.boundReleaseWindow = this.releaseWindow.bind(this);
 
