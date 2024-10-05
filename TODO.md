@@ -14,7 +14,6 @@
 ## Must
 
 - Fix positioning and min width in current combination pushing the window (top & left resizers)
-- Auto mode
 - Context menu being cut off at the floating window's bottom
   Navigation bar menus should be separate iframes to fix this
 
