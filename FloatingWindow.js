@@ -124,7 +124,7 @@ class FloatingWindow extends HTMLElement {
 		this.appendChild(this.#iframe);
 
 		if (!this.#iframe.contentWindow || !this.#iframe.contentDocument || !this.#iframe.contentDocument.body) {
-			throw "The iframe's content is not available, this likely means that the browser is not initializing anything before trying to load the source, which we don't have here, but the browser defaults to a blank page";
+			throw new Error("The iframe's content is not available, this likely means that the browser is not initializing anything before trying to load the source, which we don't have here, but the browser defaults to a blank page");
 		}
 
 		// This is just pure black magic
@@ -527,7 +527,7 @@ class FloatingWindow extends HTMLElement {
 	 */
 	static calcMinMax(minMax, calcSize1, calcSize2, dimension) {
 		if (!["min", "max"].includes(minMax)) {
-			throw "The minMax parameter's value must be 'min' or 'max'";
+			throw new Error("The minMax parameter's value must be 'min' or 'max'");
 		}
 
 		let pxSize1 = FloatingWindow.convertStyleCalcSizeToPx(calcSize1, dimension);
@@ -602,7 +602,7 @@ class FloatingWindow extends HTMLElement {
 				this.setSizeToAutoFitContent();
 				break;
 			default:
-				throw `Cannot set size type to ${this.dataset.sizeType}`;
+				throw new Error(`Cannot set size type to ${this.dataset.sizeType}`);
 		}
 	}
 
