@@ -73,6 +73,7 @@ class FloatingWindow extends HTMLElement {
 	// Overrides
 
 	connectedCallback() {
+		// Base css
 		this.style.all = "unset"; // The page's css must not affect this element
 		this.style.position = "fixed";
 		this.style.top = "0";
