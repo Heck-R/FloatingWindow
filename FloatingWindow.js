@@ -24,6 +24,7 @@
 class FloatingWindow extends HTMLElement {
 	/** Intended tag name */
 	static tagName = "floating-window";
+	static contentAutoSizeClassName = "autoSize";
 
 	/**
 	 * The gatekeeper of functionality
@@ -99,6 +100,12 @@ class FloatingWindow extends HTMLElement {
 		observer.observe(this, {
 			attributes: true,
 			attributeFilter: ["data-size-type"],
+		});
+
+		// The following observer is needed to be added when the auto size mode is active,
+		// and the instance has to be kept so it can be removed when auto size mode is off
+		this.autoSizeObserver = new ResizeObserver(resizedElements => {
+			this.setSizeToAutoFitContent();
 		});
 
 		this.initUI();
@@ -280,7 +287,7 @@ class FloatingWindow extends HTMLElement {
 		sizeTypeButtonPanel.classList.add("switchable");
 		sizeTypeButtonPanel.classList.add("hidden");
 
-		let sizeTypes = ["Relative", "Fixed"]; // "Auto" is removed until it's fixed
+		let sizeTypes = ["Relative", "Fixed", "Auto"];
 		for (let sizeType of sizeTypes) {
 			let sizeTypeButton = createPositionButton("sizeType" + sizeType, sizeType, () => {
 				this.dataset.sizeType = sizeType;
@@ -398,6 +405,13 @@ class FloatingWindow extends HTMLElement {
 		this.updateFloatingWindowStyle();
 		this.applyOriginPageSizeRelatedStyles();
 		this.applyBasicFloatingStyle();
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// Calculated values
+
+	static calculateNavigationBarHeight() {
+		return `${10 + 0.015 * window.innerHeight}px`;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -551,9 +565,21 @@ class FloatingWindow extends HTMLElement {
 	 * Handles basic window positioning values based on `this.dataset.sizeType`
 	 */
 	onFloatingDataChange_sizeType() {
+		if (!this.autoSizeObserver) {
+			throw new Error("Something was assumed to be initialized, but wasn't!");
+		}
+
 		if (this.dataset.sizeType != "Auto" && (!this.style.width || !this.style.height)) {
 			// For non-Auto modes, the window must have width and height defined
 			this.fixateImplicitSize();
+		}
+
+		if (this.dataset.sizeType === "Auto") {
+			this.content.classList.add(FloatingWindow.contentAutoSizeClassName);
+			this.autoSizeObserver.observe(this.content);
+		} else {
+			this.content.classList.remove(FloatingWindow.contentAutoSizeClassName);
+			this.autoSizeObserver.unobserve(this.content);
 		}
 
 		switch (this.dataset.sizeType) {
@@ -572,12 +598,42 @@ class FloatingWindow extends HTMLElement {
 			case "Auto":
 				this.style.top = FloatingWindow.convertStyleCalcSizeToPx(this.style.top, "h") + "px";
 				this.style.left = FloatingWindow.convertStyleCalcSizeToPx(this.style.left, "w") + "px";
-				this.style.width = "";
-				this.style.height = "";
+				this.setSizeToAutoFitContent();
 				break;
 			default:
 				throw `Cannot set size type to ${this.dataset.sizeType}`;
 		}
+	}
+
+	/**
+	 * Set the floating window's size to fit the content at the time of the call
+	 * This is necessary due to the window being wrapped into an iframe that cannot fit to its content by itself
+	 */
+	setSizeToAutoFitContent() {
+		// Since all of the window navigation are inside the set size,
+		// the additional stuff must be included in the calculation
+		const contentComputedStyle = getComputedStyle(this.content);
+		this.style.width = `calc(\
+			${this.content.scrollWidth}px + \
+			2 * ${this.sizerThickness} + \
+			${contentComputedStyle.marginLeft} + \
+			${contentComputedStyle.marginRight} + \
+			${contentComputedStyle.borderLeftWidth} + \
+			${contentComputedStyle.borderRightWidth} + \
+			${contentComputedStyle.paddingLeft} + \
+			${contentComputedStyle.paddingRight}\
+		)`;
+		this.style.height = `calc(\
+			${this.content.scrollHeight}px + \
+			${FloatingWindow.calculateNavigationBarHeight()} + \
+			2 * ${this.sizerThickness} + \
+			${contentComputedStyle.marginTop} + \
+			${contentComputedStyle.marginBottom} + \
+			${contentComputedStyle.borderTopWidth} + \
+			${contentComputedStyle.borderBottomWidth} + \
+			${contentComputedStyle.paddingTop} + \
+			${contentComputedStyle.paddingBottom}\
+		)`;
 	}
 
 	/**
@@ -819,7 +875,7 @@ class FloatingWindow extends HTMLElement {
 		if (!this.windowStyle) {
 			throw new Error("Something unexpected happened, the minimum window sizing values are not set");
 		}
-		const navigationBarHeight = `${10 + 0.015 * window.innerHeight}px`;
+		const navigationBarHeight = FloatingWindow.calculateNavigationBarHeight();
 
 		const variableContextElement = this.#iframe.contentDocument.querySelector(":root");
 		variableContextElement.style.setProperty("--navigation-bar-height", navigationBarHeight);
@@ -827,6 +883,9 @@ class FloatingWindow extends HTMLElement {
 
 		this.style.minWidth = `calc(${this.positionPanel.childElementCount} * ${computedStyle.getPropertyValue("--position-slot-width")} + 2 * ${this.sizerThickness})`;
 		this.style.minHeight = `calc(${navigationBarHeight} + 2 * ${this.sizerThickness})`;
+
+		// Avoid auto size being thinner than the navigation bar
+		variableContextElement.style.setProperty("--min-window-width", this.style.minWidth);
 	}
 
 	/**
@@ -1006,8 +1065,9 @@ class FloatingWindow extends HTMLElement {
 		this.contentStyle.textContent = FloatingWindow.preBuiltStyles.darkMode;
 		this.windowStyle.textContent = `
 			:root {
-				/* An arbitrary size. This is updated when the window is resized */
+				/* These are updated when the window is resized. The initial sizes below never take effect */
 				--navigation-bar-height: 10px;
+				--min-window-width: 10px;
 
 				--position-slot-width: calc(1.5 * var(--navigation-bar-height));
 			}
@@ -1234,6 +1294,12 @@ class FloatingWindow extends HTMLElement {
 				height: calc(100% - var(--navigation-bar-height));
 
 				overflow: auto;
+			}
+
+			#content.${FloatingWindow.contentAutoSizeClassName}:not(#content *) {
+				min-width: var(--min-window-width);
+				width: fit-content;
+				height: fit-content;
 			}
 		`;
 	}
