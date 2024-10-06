@@ -5,7 +5,7 @@ function run() {
 	document.body.appendChild(floatingWindow);
 	console.log(floatingWindow);
 
-	floatingWindow.content.innerHTML = `
+	floatingWindow.content.innerHTML += `
         asd<b>asds</b>asd<i>adaaa</i>aaaaaa<hr>
         <table>
         <tr><th>asd</th><th>asd</th><th>asd</th></tr>
