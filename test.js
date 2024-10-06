@@ -2,7 +2,7 @@ function run() {
 	/**/
 	/** @type FloatingWindow */
 	let floatingWindow = document.createElement("floating-window");
-	document.body.appendChild(floatingWindow);
+	document.documentElement.appendChild(floatingWindow);
 	console.log(floatingWindow);
 
 	floatingWindow.content.innerHTML += `
