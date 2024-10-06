@@ -8,6 +8,12 @@
   - the window acts as a proper sidebar, not above the page content, but taking space from it
   - hint: https://css-tricks.com/snippets/css/complete-guide-grid/
 - Move window back to interact-able part of the window to avoid it being lost (maybe a navigation button amount, so it is possible to grab or maximize)
+- Move content inside its own iframe
+  Reasons (a.k.a. the shadow DOM is a disappointment):
+  - Can't not insert default styling into the "working area" as adapted styles must come from the same document,
+    but the window iframe is purposefully not loaded toa void annoying callback initialization
+  - The shadow DOM lacks basic locator functions like `getElementsByClassName`, which can be worked around, but requires the content to conform,
+    which goes against the goal of the window
 
 # Fixes
 
