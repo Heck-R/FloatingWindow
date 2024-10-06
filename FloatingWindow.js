@@ -13,7 +13,7 @@
  *       - The window size is restored when the window is grabbed
  * - Customization
  *   - Custom content
- *     - The window is meant to be filled with custom content via the {@link content}
+ *     - The window is meant to be filled with custom content via the {@link #content}
  *     - The window is aimed at mini applications, so it is safe from the outer page's logic, including events and their prevention
  *   - Custom style
  *     - Ignores page css for a consistent look
@@ -37,11 +37,20 @@ class FloatingWindow extends HTMLElement {
 	#iframe;
 
 	/**
+	 * The host of the content shadow DOM
+	 *
+	 * @type {HTMLDivElement}
+	 */
+	#contentShadowHost;
+
+	/**
 	 * The window's entry point for adding custom content
+	 *
+	 * By default the only content in this element is the content style
 	 *
 	 * Functionally only available after the window is added to the page
 	 *
-	 * @type {HTMLDivElement}
+	 * @type {ShadowRoot}
 	 */
 	content;
 
@@ -54,8 +63,7 @@ class FloatingWindow extends HTMLElement {
 	 *
 	 * Prebuilt styles can be found in {@link preBuiltStyles}
 	 *
-	 * Optionally the custom content can be styled here as well, although note, that here all selectors
-	 * must start with "#content ", otherwise it may impact the window's navigation
+	 * It is mostly intended for generic styling, but custom content can also be styled here
 	 *
 	 * @type {HTMLStyleElement}
 	 */
@@ -200,7 +208,6 @@ class FloatingWindow extends HTMLElement {
 		this.contentStyle.setAttribute("scoped", "");
 
 		// The style of the window itself, including the navigation bar and resizers at the edges
-		// For a consistent look across all browsers and pages, it starts by removing all styling
 		this.windowStyle = document.createElement("style");
 		this.windowStyle.id = "windowStyle";
 		this.windowStyle.setAttribute("scoped", "");
@@ -354,12 +361,15 @@ class FloatingWindow extends HTMLElement {
 		let closeSlot = createPositionSlot("close", "X", this.closeWindow.bind(this));
 
 		// Content
-		this.content = document.createElement("div");
-		this.content.id = "content";
+		// this.#contentShadowHost = document.createElement("div");
+		this.#contentShadowHost = document.createElement("div");
+		this.#contentShadowHost.id = "content";
+
+		// Content shadow for separating window from content
+		this.content = this.#contentShadowHost.attachShadow({ mode: "open" });
 
 		// Assemble
 		this.#iframe.contentDocument.head.appendChild(this.windowStyle);
-		this.#iframe.contentDocument.head.appendChild(this.contentStyle);
 		this.#iframe.contentDocument.body.appendChild(floatingWindow);
 		/**/ floatingWindow.appendChild(navigationBar);
 		/**/ /**/ navigationBar.appendChild(this.positionPanel);
@@ -371,7 +381,8 @@ class FloatingWindow extends HTMLElement {
 		/**/ /**/ /**/ /**/ fixedSlot.appendChild(fixedButtonGrid);
 		/**/ /**/ /**/ this.positionPanel.appendChild(maximizeSlot);
 		/**/ /**/ /**/ this.positionPanel.appendChild(closeSlot);
-		/**/ floatingWindow.appendChild(this.content);
+		/**/ floatingWindow.appendChild(this.#contentShadowHost);
+		/**/ /**/ this.content.appendChild(this.contentStyle);
 		this.#iframe.contentDocument.body.appendChild(windowSizerContainer);
 		/**/ windowSizerContainer.appendChild(sizerTop);
 		/**/ windowSizerContainer.appendChild(sizerBottom);
@@ -576,11 +587,11 @@ class FloatingWindow extends HTMLElement {
 		}
 
 		if (this.dataset.sizeType === "Auto") {
-			this.content.classList.add(FloatingWindow.contentAutoSizeClassName);
-			this.autoSizeObserver.observe(this.content);
+			this.#contentShadowHost.classList.add(FloatingWindow.contentAutoSizeClassName);
+			this.autoSizeObserver.observe(this.#contentShadowHost);
 		} else {
-			this.content.classList.remove(FloatingWindow.contentAutoSizeClassName);
-			this.autoSizeObserver.unobserve(this.content);
+			this.#contentShadowHost.classList.remove(FloatingWindow.contentAutoSizeClassName);
+			this.autoSizeObserver.unobserve(this.#contentShadowHost);
 		}
 
 		switch (this.dataset.sizeType) {
@@ -613,9 +624,9 @@ class FloatingWindow extends HTMLElement {
 	setSizeToAutoFitContent() {
 		// Since all of the window navigation are inside the set size,
 		// the additional stuff must be included in the calculation
-		const contentComputedStyle = getComputedStyle(this.content);
+		const contentComputedStyle = getComputedStyle(this.#contentShadowHost);
 		this.style.width = `calc(\
-			${this.content.scrollWidth}px + \
+			${this.#contentShadowHost.scrollWidth}px + \
 			2 * ${this.sizerThickness} + \
 			${contentComputedStyle.marginLeft} + \
 			${contentComputedStyle.marginRight} + \
@@ -625,7 +636,7 @@ class FloatingWindow extends HTMLElement {
 			${contentComputedStyle.paddingRight}\
 		)`;
 		this.style.height = `calc(\
-			${this.content.scrollHeight}px + \
+			${this.#contentShadowHost.scrollHeight}px + \
 			${FloatingWindow.calculateNavigationBarHeight()} + \
 			2 * ${this.sizerThickness} + \
 			${contentComputedStyle.marginTop} + \
@@ -1073,15 +1084,15 @@ class FloatingWindow extends HTMLElement {
 				--position-slot-width: calc(1.5 * var(--navigation-bar-height));
 			}
 
-			[contenteditable]:not(#content *) {
+			[contenteditable] {
 				outline: 0px solid transparent;
 			}
 
-			.hidden:not(#content *) {
+			.hidden {
 				display: none!important;
 			}
 
-			#windowSizerContainer:not(#content *) {
+			#windowSizerContainer {
 				position: absolute;
 				top: 0;
 				left: 0;
@@ -1092,7 +1103,7 @@ class FloatingWindow extends HTMLElement {
 				z-index: 0;
 			}
 
-			#floatingWindow:not(#content *) {
+			#floatingWindow {
 				margin: ${this.sizerThickness};
 				position: absolute;
 				width: calc(100% - 2*${this.sizerThickness});
@@ -1105,7 +1116,7 @@ class FloatingWindow extends HTMLElement {
 				z-index: 1;
 			}
 
-			#navigationBar:not(#content *) {
+			#navigationBar {
 				display: block;
 
 				width: 100%;
@@ -1119,7 +1130,7 @@ class FloatingWindow extends HTMLElement {
 			}
 
 
-			#positionPanel:not(#content *) {
+			#positionPanel {
 				display: flex;
 
 				height: 100%;
@@ -1127,18 +1138,18 @@ class FloatingWindow extends HTMLElement {
 				float: right;
 			}
 
-			#positionPanel:not(#content *),
-			#positionPanel > .positionSlot:last-child:not(#content *),
-			#positionPanel > .positionSlot:last-child > .positionButton:not(#content *) {
+			#positionPanel,
+			#positionPanel > .positionSlot:last-child,
+			#positionPanel > .positionSlot:last-child > .positionButton {
 				border-radius: 0 ${this.windowBorderRadius} 0 0;
 			}
 
-			.positionSlot:not(#content *) {
+			.positionSlot {
 				height: 100%;
 				width: var(--position-slot-width);
 			}
 
-			.positionButton:not(#content *) {
+			.positionButton {
 				display: flex;
 
 				height: 100%;
@@ -1155,42 +1166,42 @@ class FloatingWindow extends HTMLElement {
 				color: white;
 			}
 
-			.positionButton:hover:not(#content *) {
+			.positionButton:hover {
 				filter: brightness(130%);
 			}
 
-			#movableButton:hover:not(#content *) {
+			#movableButton:hover {
 				filter: unset;
 				cursor: unset;
 			}
 
-			#sizeTypeButton:not(#content *),
-			.sizeTypeButton:not(#content *) {
+			#sizeTypeButton,
+			.sizeTypeButton {
 				background-color: #707;
 			}
 
-			#minimizeButton:not(#content *) {
+			#minimizeButton {
 				background-color: #777;
 			}
 
-			#fixedButton:not(#content *),
-			.fixedButton:not(#content *) {
+			#fixedButton,
+			.fixedButton {
 				background-color: #07b;
 			}
 
-			#maximizeButton:not(#content *) {
+			#maximizeButton {
 				background-color: #070;
 			}
 
-			#closeButton:not(#content *) {
+			#closeButton {
 				background-color: #a00;
 			}
 
-			.switchable:not(#content *) {
+			.switchable {
 				position: absolute;
 			}
 
-			#sizeTypeButtonPanel:not(#content *) {
+			#sizeTypeButtonPanel {
 				width: calc(3 * var(--position-slot-width));
 				height: calc(3 * var(--position-slot-width));
 
@@ -1200,7 +1211,7 @@ class FloatingWindow extends HTMLElement {
 				grid-template-rows: 1fr 1fr 1fr;
 			}
 
-			#fixedButtonGrid:not(#content *) {
+			#fixedButtonGrid {
 				width: calc(3 * var(--position-slot-width));
 				height: calc(3 * var(--position-slot-width));
 
@@ -1210,7 +1221,7 @@ class FloatingWindow extends HTMLElement {
 				grid-template-rows: 1fr 1fr 1fr;
 			}
 
-			.sizer:not(#content *) {
+			.sizer {
 				position: absolute;
 
 				user-select: none;
@@ -1221,13 +1232,13 @@ class FloatingWindow extends HTMLElement {
 				-webkit-user-drag: none;
 			}
 
-			.sizer:hover:not(#content *) {
+			.sizer:hover {
 				background-color: #000;
 				opacity: 0.2;
 			}
 
-			.sizerTop:not(#content *),
-			.sizerBottom:not(#content *) {
+			.sizerTop,
+			.sizerBottom {
 				left: 50%;
 				transform: translate(-50%, 0);
 
@@ -1237,8 +1248,8 @@ class FloatingWindow extends HTMLElement {
 				cursor: ns-resize;
 			}
 
-			.sizerLeft:not(#content *),
-			.sizerRight:not(#content *) {
+			.sizerLeft,
+			.sizerRight {
 				top: 50%;
 				transform: translate(0, -50%);
 
@@ -1248,17 +1259,17 @@ class FloatingWindow extends HTMLElement {
 				cursor: ew-resize;
 			}
 
-			.sizerTop.sizerLeft:not(#content *),
-			.sizerBottom.sizerRight:not(#content *) {
+			.sizerTop.sizerLeft,
+			.sizerBottom.sizerRight {
 				cursor: nwse-resize;
 			}
 
-			.sizerTop.sizerRight:not(#content *),
-			.sizerBottom.sizerLeft:not(#content *) {
+			.sizerTop.sizerRight,
+			.sizerBottom.sizerLeft {
 				cursor: nesw-resize;
 			}
 
-			.sizerCorner:not(#content *) {
+			.sizerCorner {
 				width: calc(${this.windowBorderRadius} + ${this.sizerThickness});
 				height: calc(${this.windowBorderRadius} + ${this.sizerThickness});
 
@@ -1270,25 +1281,25 @@ class FloatingWindow extends HTMLElement {
 				transform: unset;
 			}
 
-			.sizerTop:not(#content *) {
+			.sizerTop {
 				top: 0;
 			}
 
-			.sizerBottom:not(#content *) {
+			.sizerBottom {
 				bottom: 0;
 			}
 
-			.sizerLeft:not(#content *) {
+			.sizerLeft {
 				left: 0;
 			}
 
-			.sizerRight:not(#content *) {
+			.sizerRight {
 				right: 0;
 			}
 
 
 
-			#content:not(#content *) {
+			#content {
 				display: block;
 
 				width: 100%;
@@ -1297,7 +1308,7 @@ class FloatingWindow extends HTMLElement {
 				overflow: auto;
 			}
 
-			#content.${FloatingWindow.contentAutoSizeClassName}:not(#content *) {
+			#content.${FloatingWindow.contentAutoSizeClassName} {
 				min-width: var(--min-window-width);
 				width: fit-content;
 				height: fit-content;
@@ -1308,7 +1319,7 @@ class FloatingWindow extends HTMLElement {
 	static preBuiltStyles = {
 		darkMode: `
 			/* Generic */
-			#content {
+			:host {
 				background-color: #000000;
 				color: #ccc;
 
@@ -1318,18 +1329,18 @@ class FloatingWindow extends HTMLElement {
 				box-sizing: border-box;
 			}
 
-			#content * {
+			* {
 				color: #ccc;
 			}
 
 			/* Separator */
-			#content hr {
+			hr {
 				display: block;
 				border: 1px inset;
 			}
 
 			/* Button */
-			#content button {
+			button {
 				background-color: #444;
 				color: #eee !important;
 
@@ -1342,11 +1353,11 @@ class FloatingWindow extends HTMLElement {
 				user-select: none;
 			}
 
-			#content button:hover {
+			button:hover {
 				background-color: #555;
 			}
 
-			#content button:active {
+			button:active {
 				background-color: #333;
 				
 				border: none;
@@ -1355,37 +1366,37 @@ class FloatingWindow extends HTMLElement {
 			}
 
 			/* Textarea */
-			#content textarea {
+			textarea {
 				background-color: #222;
 			}
 
 			/* Linking */
-			#content :any-link {
+			:any-link {
 				cursor: pointer;
 				text-decoration: underline;
 			}
 
-			#content a:link {
+			a:link {
 				color: LinkText!important;
 			}
 
-			#content a:visited {
+			a:visited {
 				color: VisitedText!important;
 			}
 
-			#content a:hover,
-			#content a:focus {
+			a:hover,
+			a:focus {
 				text-decoration: none;
 			}
 
-			#content a:active {
+			a:active {
 				color: ActiveText!important
 			}
 		`,
 
 		lightMode: `
 			/* Generic */
-			#content {
+			:host {
 				background-color: #fff;
 
 				border-style: solid;
@@ -1395,30 +1406,30 @@ class FloatingWindow extends HTMLElement {
 			}
 
 			/* Button */
-			#content button {
+			button {
 				cursor: pointer;
 				user-select: none;
 			}
 
 			/* Linking */
-			#content :any-link {
+			:any-link {
 				cursor: pointer;
 				text-decoration: underline;
 			}
 
-			#content a:link {
+			a:link {
 				color: LinkText!important;
 			}
 
-			#content a:visited {
+			a:visited {
 				color: VisitedText!important;
 			}
 
-			#content a:hover, a:focus {
+			a:hover, a:focus {
 				text-decoration: none;
 			}
 
-			#content a:active {
+			a:active {
 				color: ActiveText!important
 			}
 		`,
