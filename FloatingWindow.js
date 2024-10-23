@@ -1,6 +1,6 @@
 // This optional declaration is done to avoid getting a redeclaration error if the script is reference multiple times (e.g.: multiple user scripts)
 var FloatingWindow =
-	// @ts-ignore
+	// @ts-expect-error: The entire point of this is that this may or may not exist at this point
 	FloatingWindow ||
 	/**
 	 * A floating window html element with the following capabilities:
