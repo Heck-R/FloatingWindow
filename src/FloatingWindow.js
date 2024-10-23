@@ -1116,7 +1116,7 @@ var FloatingWindow =
 					font-size: 15px;
 
 					border-radius: ${this.windowBorderRadius};
-					
+
 					z-index: 1;
 				}
 
@@ -1363,7 +1363,7 @@ var FloatingWindow =
 
 				button:active {
 					background-color: #333;
-					
+
 					border: none;
 					border-radius: 0.2em;
 					box-shadow: inset 0 0 0 2px #777;
