@@ -34,7 +34,7 @@
 # Others
 
 ## Must
-	
+
 - Avoid infinite string-int conversion (data properties may just not be ideal)
 - Re-think default content styles ()
 - Clean up
