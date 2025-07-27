@@ -1381,11 +1381,11 @@ var FloatingWindow =
 				}
 
 				a:link {
-					color: LinkText!important;
+					color: dodgerblue !important;
 				}
 
 				a:visited {
-					color: VisitedText!important;
+					color: orchid !important;
 				}
 
 				a:hover,
