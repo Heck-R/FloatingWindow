@@ -1343,8 +1343,22 @@ var FloatingWindow =
 					border: 1px inset;
 				}
 
-				/* Button */
-				button {
+				/* Input */
+				input {
+					background-color: #222;
+					color: #eee !important;
+
+					padding: 0.2em 0.4em 0.2em 0.4em;
+					border: none;
+					border-radius: 0.2em;
+					box-shadow: inset 0 0 0 1px #777;
+
+					user-select: none;
+				}
+
+				/* Button-like */
+				button,
+				input:is([type="reset"], [type="button"], [type="submit"], [type="color"]) {
 					background-color: #444;
 					color: #eee !important;
 
@@ -1357,11 +1371,13 @@ var FloatingWindow =
 					user-select: none;
 				}
 
-				button:hover {
+				button:hover,
+				input:is([type="reset"], [type="button"], [type="submit"], [type="color"]):hover {
 					background-color: #555;
 				}
 
-				button:active {
+				button:active,
+				input:is([type="reset"], [type="button"], [type="submit"], [type="color"]):active {
 					background-color: #333;
 
 					border: none;
