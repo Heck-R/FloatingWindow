@@ -15,11 +15,35 @@ function run() {
         <textarea>
         </textarea>
         aaaaaaaaaaa
+        <a href="https://gooaikdfhsdjkfgle.com">link</a>
         <a href="https://google.com">link</a>
         <button>asd</button>aaaaaaaaaasd<br>
+		<input type="button" value="asd"></input><br>
+		<input type="checkbox"></input><br>
+		<input type="color"></input><br>
+		<input type="date"></input><br>
+		<input type="datetime-local"></input><br>
+		<input type="email"></input><br>
+		<input type="file"></input><br>
+		<input type="hidden"></input><br>
+		<input type="image"></input><br>
+		<input type="month"></input><br>
+		<input type="number"></input><br>
+		<input type="password"></input><br>
+		<input type="radio"></input><br>
+		<input type="range"></input><br>
+		<input type="reset"></input><br>
+		<input type="search"></input><br>
+		<input type="submit"></input><br>
+		<input type="tel"></input><br>
+		<input type="text"></input><br>
+		<input type="time"></input><br>
+		<input type="url"></input><br>
+		<input type="week"></input><br>
+		<br>
         klsjg`;
 
-	floatingWindow.style.height = "300px";
+	floatingWindow.style.height = "900px";
 	// };
 	//floatingWindow.content.setAttribute('contenteditable', 'true')
 
