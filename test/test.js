@@ -20,6 +20,7 @@ function run() {
         <button>asd</button>aaaaaaaaaasd<br>
 		<input type="button" value="asd"></input><br>
 		<input type="checkbox"></input><br>
+		<input type="checkbox" checked></input><br>
 		<input type="color"></input><br>
 		<input type="date"></input><br>
 		<input type="datetime-local"></input><br>
@@ -31,6 +32,7 @@ function run() {
 		<input type="number"></input><br>
 		<input type="password"></input><br>
 		<input type="radio"></input><br>
+		<input type="radio" checked></input><br>
 		<input type="range"></input><br>
 		<input type="reset"></input><br>
 		<input type="search"></input><br>
