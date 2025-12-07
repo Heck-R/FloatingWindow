@@ -1357,6 +1357,17 @@ var FloatingWindow =
 					user-select: none;
 				}
 
+				/* Image */
+				/* Unset image input styles, as the whole point of it is that its style is an image */
+				input[type="image"] {
+					background-color: initial;
+
+					padding: initial;
+					border: initial;
+					border-radius: initial;
+					box-shadow: initial;
+				}
+
 				/* Checkbox & radio */
 				input[type="checkbox"],
 				input[type="radio"] {
