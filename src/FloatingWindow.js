@@ -1344,7 +1344,8 @@ var FloatingWindow =
 				}
 
 				/* Input */
-				input {
+				input,
+				select {
 					background-color: #222;
 					color: #eee !important;
 
