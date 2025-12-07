@@ -1357,6 +1357,15 @@ var FloatingWindow =
 					user-select: none;
 				}
 
+				/* Checkbox & radio */
+				input[type="checkbox"],
+				input[type="radio"] {
+					/* One of the ~ two methods to change a checkbox / radio background... */
+					filter: invert(85%);
+					/* After inverting above, we have to adapt to get something close to dodgerblue */
+					accent-color: #ff7700;
+				}
+
 				/* Button-like */
 				button,
 				input:is([type="reset"], [type="button"], [type="submit"], [type="color"]) {
