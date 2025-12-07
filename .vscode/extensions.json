@@ -1,6 +1,5 @@
 {
 	"recommendations": [
-		"dbaeumer.vscode-eslint",
-		"visualstudioexptteam.vscodeintellicode"
+		"dbaeumer.vscode-eslint"
 	]
 }
