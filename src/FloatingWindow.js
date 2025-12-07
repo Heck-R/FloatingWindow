@@ -1366,6 +1366,24 @@ var FloatingWindow =
 					accent-color: #ff7700;
 				}
 
+				/* Range */
+				/* Ranges in Firefox are shining way too brightly by default in dark mode, but are also pure madness, as a minimal change somehow affects unrelated parts as well */
+				input[type="range"] {
+					background: transparent;
+					box-shadow: none;
+				}
+				input[type="range"]::-moz-range-track {
+					background-color: #444;
+					height: 7px;
+				}
+				input[type="range"]::-moz-range-progress {
+					background-color: dodgerblue;
+					height: 7px;
+				}
+				input[type="range"]::-moz-range-thumb {
+					background-color: #888;
+				}
+
 				/* Button-like */
 				button,
 				input:is([type="reset"], [type="button"], [type="submit"], [type="color"]) {
