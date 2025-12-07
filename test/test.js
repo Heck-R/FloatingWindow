@@ -40,6 +40,11 @@ function run() {
 		<input type="time"></input><br>
 		<input type="url"></input><br>
 		<input type="week"></input><br>
+		<select>
+			<option>option 1</option>
+			<option>option 2</option>
+			<option>option 3</option>
+		</select><br>
 		<br>
         klsjg`;
 
