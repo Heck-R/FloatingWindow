@@ -1347,7 +1347,7 @@ var FloatingWindow =
 				input,
 				select {
 					background-color: #222;
-					color: #eee !important;
+					color: #eee;
 
 					padding: 0.2em 0.4em 0.2em 0.4em;
 					border: none;
@@ -1399,7 +1399,7 @@ var FloatingWindow =
 				button,
 				input:is([type="reset"], [type="button"], [type="submit"], [type="color"]) {
 					background-color: #444;
-					color: #eee !important;
+					color: #eee;
 
 					padding: 0.2em 0.4em 0.2em 0.4em;
 					border: none;
@@ -1436,11 +1436,11 @@ var FloatingWindow =
 				}
 
 				a:link {
-					color: dodgerblue !important;
+					color: dodgerblue;
 				}
 
 				a:visited {
-					color: orchid !important;
+					color: orchid;
 				}
 
 				a:hover,
@@ -1449,7 +1449,7 @@ var FloatingWindow =
 				}
 
 				a:active {
-					color: ActiveText!important
+					color: ActiveText;
 				}
 			`,
 
@@ -1477,11 +1477,11 @@ var FloatingWindow =
 				}
 
 				a:link {
-					color: LinkText!important;
+					color: LinkText;
 				}
 
 				a:visited {
-					color: VisitedText!important;
+					color: VisitedText;
 				}
 
 				a:hover, a:focus {
@@ -1489,7 +1489,7 @@ var FloatingWindow =
 				}
 
 				a:active {
-					color: ActiveText!important
+					color: ActiveText
 				}
 			`,
 		};
